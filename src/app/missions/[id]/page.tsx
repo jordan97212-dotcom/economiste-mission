@@ -62,6 +62,9 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
           <Link href={`/missions/${mission.id}/chiffrage`} className="bouton bouton-primaire">
             Ouvrir le chiffrage
           </Link>
+          <Link href={`/missions/${mission.id}/import`} className="bouton">
+            Importer un DPGF
+          </Link>
           <Link href={`/missions/${mission.id}/modifier`} className="bouton">
             Modifier
           </Link>
@@ -130,6 +133,35 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="carte" style={{ marginBottom: 22 }}>
+        <div className="carte-entete">
+          <h2>Exports</h2>
+          <span className="attenue" style={{ fontSize: 13 }}>
+            Le prix exporté est le prix unitaire final, coefficient déjà appliqué.
+          </span>
+        </div>
+        <div className="carte-corps" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <a
+            href={`/missions/${mission.id}/export?variante=avec-prix`}
+            className="bouton"
+            download
+          >
+            DPGF chiffré (.xlsx)
+          </a>
+          <a
+            href={`/missions/${mission.id}/export?variante=a-remplir`}
+            className="bouton"
+            download
+          >
+            DPGF à remplir par l’entreprise (.xlsx)
+          </a>
+          <span className="attenue" style={{ fontSize: 13, maxWidth: '52ch' }}>
+            La version à remplir a ses colonnes de prix vides, la feuille protégée et les seules
+            cellules de saisie déverrouillées. Les montants s’y calculent tout seuls.
+          </span>
         </div>
       </section>
 

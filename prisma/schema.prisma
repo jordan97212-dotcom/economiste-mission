@@ -361,7 +361,10 @@ model PrixReference {
   corpsEtatId String?    @map("corps_etat_id")
   corpsEtat   CorpsEtat? @relation(fields: [corpsEtatId], references: [id], onDelete: SetNull)
 
-  prixUnitaireHt BigInt   @map("prix_unitaire_ht") // centimes
+  /// Dix-millièmes d'euro, comme le type PrixUnitaire du domaine. Un prix
+  /// unitaire peut porter jusqu'à quatre décimales ; un montant, lui, est
+  /// toujours au centime.
+  prixUnitaireHt BigInt   @map("prix_unitaire_ht")
   dateReleve     DateTime @map("date_releve")
 
   origineMissionId String?  @map("origine_mission_id")
@@ -372,6 +375,10 @@ model PrixReference {
   contexteNature      NatureOperation? @map("contexte_nature")
 
   zone Zone @default(MARTINIQUE)
+
+  /// Colonne générée par PostgreSQL pour la recherche plein texte française,
+  /// insensible aux accents. Alimentée par la base, jamais par l'application.
+  recherche Unsupported("tsvector")?
 
   piecesJointes PieceJointe[]
 
@@ -460,6 +467,7 @@ model LigneOffre {
   posteId String @map("poste_id")
   poste   Poste  @relation(fields: [posteId], references: [id], onDelete: Cascade)
 
+  /// Dix-millièmes d'euro pour le prix unitaire, centimes pour le montant.
   prixUnitaireHt BigInt @map("prix_unitaire_ht")
   montantHt      BigInt @map("montant_ht")
 

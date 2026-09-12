@@ -1,8 +1,11 @@
 import type { PrismaClient } from '@prisma/client'
 import { dec, arrondiCommercial } from '../../domain/money/decimal'
+import { lireNombre, normaliserUnite } from '../saisie'
 import * as PU from '../../domain/money/prix-unitaire'
 import { MissionIntrouvable, enregistrerModifications, chargerChiffrage } from './service'
 import { ajouterPoste } from './structure'
+
+export { lireNombre, normaliserUnite } from '../saisie'
 import type { ChiffrageDTO, ModificationPoste } from '../dto'
 
 /** Colonnes que l'on peut remplir par collage, dans l'ordre de la grille. */
@@ -16,51 +19,6 @@ export const COLONNES_COLLABLES = [
 ] as const
 
 export type ColonneCollable = (typeof COLONNES_COLLABLES)[number]
-
-const UNITES_CONNUES: Record<string, string> = {
-  m2: 'M2',
-  'm²': 'M2',
-  m3: 'M3',
-  'm³': 'M3',
-  ml: 'ML',
-  m: 'ML',
-  u: 'U',
-  un: 'U',
-  ens: 'ENS',
-  'ens.': 'ENS',
-  ensemble: 'ENS',
-  f: 'FORFAIT',
-  ft: 'FORFAIT',
-  forfait: 'FORFAIT',
-  kg: 'KG',
-  t: 'T',
-  tonne: 'T',
-  h: 'H',
-  heure: 'H',
-  j: 'J',
-  jour: 'J',
-}
-
-export function normaliserUnite(brut: string): string | null {
-  const cle = brut.trim().toLowerCase()
-  if (cle === '') return null
-  return UNITES_CONNUES[cle] ?? null
-}
-
-/**
- * Lit un nombre tel qu'un tableur français le produit : espaces de milliers,
- * espaces fines insécables, virgule décimale, symbole monétaire éventuel.
- */
-export function lireNombre(brut: string): string | null {
-  const nettoye = brut
-    .replace(/[\s  ]/g, '')
-    .replace(/[€%]/g, '')
-    .replace(',', '.')
-    .trim()
-  if (nettoye === '') return null
-  if (!/^-?\d*\.?\d+$/.test(nettoye)) return null
-  return nettoye
-}
 
 export interface EntreeCollage {
   readonly lotId: string

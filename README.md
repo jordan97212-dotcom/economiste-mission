@@ -14,16 +14,16 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 1 | Noyau financier et ses tests | Livré |
 | 2 | Missions : création, duplication, tableau de bord | Livré |
 | 3 | Chiffrage : arborescence et grille éditable | Livré |
-| 4 | Base de prix personnelle et assistance au prix | À faire |
-| 5 | Import DPGF Excel | À faire |
-| 6 | Export DPGF Excel | À faire |
+| 4 | Base de prix personnelle et assistance au prix | Livré |
+| 5 | Import DPGF Excel | Livré |
+| 6 | Export DPGF Excel | Livré |
 | 7 | DCE : CCTP, CCAP, CCTG, contrôle de cohérence | À faire |
 | 8 | Honoraires, export complet, journal d'audit | À faire |
 
-L'application est utilisable : on crée une mission, on la duplique, on saisit son
-chiffrage lot par lot dans une grille au clavier, et les totaux remontent jusqu'au
-tableau de bord. Il manque encore l'import et l'export Excel, la base de prix
-personnelle et les pièces écrites du DCE.
+L'application couvre le cycle de chiffrage : création et duplication de mission,
+saisie au clavier dans une grille, import d'un DPGF Excel existant, assistance au
+prix depuis la base personnelle, et export du bordereau en deux variantes. Il
+reste les pièces écrites du DCE, puis les phases 2 et 3 de la spécification.
 
 ## Démarrer
 
@@ -98,6 +98,39 @@ C'est l'écran où passe l'essentiel du temps de travail.
   serveur : l'affichage ne peut pas diverger de ce qui sera persisté.
 - Coefficient hérité affiché en gris clair, coefficient propre à la ligne en noir.
 
+## Base de prix personnelle
+
+La recherche s'appuie sur une colonne `tsvector` maintenue par PostgreSQL, avec le
+dictionnaire français et suppression des accents. Taper « beton arme » retrouve
+donc « Béton armé pour voiles », et « cloisons » retrouve « Cloison de
+distribution ». La colonne étant générée par la base, elle ne peut pas se
+désynchroniser de la désignation.
+
+Chaque proposition arrive avec sa date, son contexte d'origine, le nombre de
+relevés qui la soutiennent et la dispersion des prix connus. En dessous de trois
+relevés, l'historique est signalé comme mince plutôt que présenté comme fiable.
+Un même ouvrage ne donne qu'une proposition, pas une par relevé.
+
+## Import et export du DPGF
+
+À l'import, le rôle de chaque colonne est proposé puis corrigé par l'utilisateur,
+et la ligne d'en-tête est devinée. Une ligne qui porte un intitulé mais ni
+quantité ni prix devient un sous-lot, et les lignes suivantes lui sont rattachées :
+c'est la forme habituelle d'un DPGF. L'aperçu affiche exactement ce qui sera créé,
+et une ligne illisible bloque l'import au lieu d'être devinée.
+
+À l'export, deux variantes du même générateur.
+
+| Variante | Contenu |
+|---|---|
+| DPGF chiffré | prix unitaires finaux et montants, formules Excel vivantes |
+| DPGF à remplir | quantités conservées, colonnes de prix vides et déverrouillées, feuille protégée |
+
+Le prix exporté est le prix unitaire **final**, coefficient déjà appliqué. Le prix
+de base et le coefficient ne sortent jamais dans un document destiné à un tiers.
+Un onglet technique masqué porte la correspondance entre chaque ligne et son
+poste, ce qui rendra fiable la reprise des offres en phase 2.
+
 ## Organisation du code
 
 ```
@@ -111,7 +144,12 @@ src/
     ports/           SourcePrix, en attendant une éventuelle base tierce
     missions/        création, modification, duplication
     chiffrage/       recalcul persisté, arborescence, collage
+    prix/            base de prix personnelle, import de classeur
+    import/          analyse d'un DPGF, sans entrée-sortie
+    saisie.ts        lecture des nombres et unités d'un tableur français
   infrastructure/  Prisma cloisonné par propriétaire, authentification argon2id
+    sources-prix/    implémentation du port SourcePrix
+    excel/           lecture de classeurs, génération du DPGF
   app/             Next.js : pages, actions serveur
   components/      grille de chiffrage, formulaire de mission
 prisma/

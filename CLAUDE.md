@@ -21,6 +21,13 @@ points tranchés.
 6. **Toute suggestion automatique est un brouillon modifiable**, jamais une valeur
    imposée. L'économiste engage sa responsabilité professionnelle.
 
+7. **Une valeur illisible se signale, elle ne se devine pas.** À l'import comme
+   au collage, un nombre qu'on ne sait pas lire produit une anomalie, jamais un
+   zéro silencieux.
+8. **Rien ne sort vers un tiers sans être voulu.** Le prix de base et le
+   coefficient d'ajustement restent internes : les exports ne portent que le prix
+   unitaire final.
+
 ## Avant de proposer un changement
 
 Signaler les ambiguïtés de la spécification plutôt que de trancher en silence.

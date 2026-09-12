@@ -32,6 +32,7 @@ export default async function RacineLayout({ children }: { children: React.React
               <nav style={{ display: 'flex', gap: 16, fontSize: 14 }}>
                 <Link href="/">Tableau de bord</Link>
                 <Link href="/missions/nouvelle">Nouvelle mission</Link>
+                <Link href="/base-prix">Base de prix</Link>
               </nav>
               <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span className="attenue" style={{ fontSize: 13 }}>

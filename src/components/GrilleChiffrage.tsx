@@ -23,6 +23,12 @@ import {
   actionCollerBloc,
 } from '../app/missions/actions-chiffrage'
 import type { ColonneCollable } from '../application/chiffrage/coller'
+import { AssistancePrix } from './AssistancePrix'
+import {
+  actionRechercherPrix,
+  actionAppliquerPrix,
+  type PropositionPrixDTO,
+} from '../app/missions/actions-prix'
 
 const COLONNES: readonly ColonneCollable[] = [
   'code',
@@ -34,6 +40,15 @@ const COLONNES: readonly ColonneCollable[] = [
 ]
 
 const DELAI_ENREGISTREMENT = 1200
+const DELAI_RECHERCHE_PRIX = 350
+const LONGUEUR_MIN_RECHERCHE = 3
+
+interface EtatAssistance {
+  readonly posteId: string
+  readonly propositions: readonly PropositionPrixDTO[]
+  readonly position: { haut: number; gauche: number }
+  readonly chargement: boolean
+}
 
 type EtatEnregistrement = 'enregistre' | 'modifie' | 'enregistrement' | 'erreur'
 
@@ -43,8 +58,11 @@ export function GrilleChiffrage({ chiffrageInitial }: { chiffrageInitial: Chiffr
   const [messageErreur, setMessageErreur] = useState<string | null>(null)
   const [ligneActive, setLigneActive] = useState<string | null>(null)
 
+  const [assistance, setAssistance] = useState<EtatAssistance | null>(null)
+
   const enAttente = useRef(new Map<string, ModificationPoste>())
   const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const minuteurPrix = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cellules = useRef(new Map<string, HTMLElement>())
 
   const { mission, lots } = chiffrage
@@ -137,6 +155,54 @@ export function GrilleChiffrage({ chiffrageInitial }: { chiffrageInitial: Chiffr
       }
     },
     [envoyer],
+  )
+
+  /**
+   * Assistance au prix : à la frappe d'une désignation, on interroge la base
+   * personnelle. La proposition ne s'applique jamais seule (§2.2).
+   */
+  const rechercherPrix = useCallback(
+    (posteId: string, texte: string, corpsEtatId: string | null, element: HTMLElement): void => {
+      if (minuteurPrix.current) clearTimeout(minuteurPrix.current)
+
+      if (texte.trim().length < LONGUEUR_MIN_RECHERCHE) {
+        setAssistance(null)
+        return
+      }
+
+      const rectangle = element.getBoundingClientRect()
+      const position = { haut: rectangle.bottom + 2, gauche: rectangle.left }
+      setAssistance({ posteId, propositions: [], position, chargement: true })
+
+      minuteurPrix.current = setTimeout(() => {
+        void actionRechercherPrix(texte, corpsEtatId)
+          .then((propositions) => {
+            setAssistance((precedent) =>
+              precedent && precedent.posteId === posteId
+                ? { ...precedent, propositions, chargement: false }
+                : precedent,
+            )
+          })
+          .catch(() => setAssistance(null))
+      }, DELAI_RECHERCHE_PRIX)
+    },
+    [],
+  )
+
+  const appliquerPrix = useCallback(
+    (posteId: string, proposition: PropositionPrixDTO): void => {
+      setAssistance(null)
+      void appelerAction(() =>
+        actionAppliquerPrix(
+          mission.id,
+          posteId,
+          proposition.prixUnitaireHt,
+          proposition.dateReleve,
+          proposition.unite,
+        ),
+      )
+    },
+    [appelerAction, mission.id],
   )
 
   const lignesPlates = useMemo(
@@ -255,6 +321,7 @@ export function GrilleChiffrage({ chiffrageInitial }: { chiffrageInitial: Chiffr
             onModifier={modifier}
             onTouche={gererTouche}
             onCollage={gererCollage}
+            onRechercherPrix={rechercherPrix}
             enregistrerReference={enregistrerReference}
             onAjouter={(type, apres) =>
               void appelerAction(() => actionAjouterPoste(mission.id, lot.id, type, apres))
@@ -268,6 +335,17 @@ export function GrilleChiffrage({ chiffrageInitial }: { chiffrageInitial: Chiffr
           />
         )
       })}
+
+      {assistance ? (
+        <AssistancePrix
+          propositions={assistance.propositions}
+          position={assistance.position}
+          precision={precision}
+          chargement={assistance.chargement}
+          onChoisir={(proposition) => appliquerPrix(assistance.posteId, proposition)}
+          onFermer={() => setAssistance(null)}
+        />
+      ) : null}
 
       <div className="total-bandeau">
         <div>
@@ -306,6 +384,12 @@ interface ProprietesLot {
     posteId: string,
     colonne: ColonneCollable,
   ) => void
+  onRechercherPrix: (
+    posteId: string,
+    texte: string,
+    corpsEtatId: string | null,
+    element: HTMLElement,
+  ) => void
   enregistrerReference: (cle: string, element: HTMLElement | null) => void
   onAjouter: (type: 'SOUS_LOT' | 'OUVRAGE', apres: string | null) => void
   onSupprimer: (posteId: string) => void
@@ -322,6 +406,7 @@ function LotGrille({
   onModifier,
   onTouche,
   onCollage,
+  onRechercherPrix,
   enregistrerReference,
   onAjouter,
   onSupprimer,
@@ -377,6 +462,8 @@ function LotGrille({
                 onModifier={onModifier}
                 onTouche={onTouche}
                 onCollage={onCollage}
+                onRechercherPrix={onRechercherPrix}
+                corpsEtatId={lot.corpsEtatId}
                 enregistrerReference={enregistrerReference}
                 onAjouter={onAjouter}
                 onSupprimer={onSupprimer}
@@ -418,6 +505,13 @@ interface ProprietesLigne {
     posteId: string,
     colonne: ColonneCollable,
   ) => void
+  onRechercherPrix: (
+    posteId: string,
+    texte: string,
+    corpsEtatId: string | null,
+    element: HTMLElement,
+  ) => void
+  corpsEtatId: string | null
   enregistrerReference: (cle: string, element: HTMLElement | null) => void
   onAjouter: (type: 'SOUS_LOT' | 'OUVRAGE', apres: string | null) => void
   onSupprimer: (posteId: string) => void
@@ -434,6 +528,8 @@ function LignePoste({
   onModifier,
   onTouche,
   onCollage,
+  onRechercherPrix,
+  corpsEtatId,
   enregistrerReference,
   onAjouter,
   onSupprimer,
@@ -475,6 +571,11 @@ function LignePoste({
           defaultValue={poste.designation}
           aria-label="Désignation"
           placeholder={estSousLot ? 'Intitulé du sous-lot' : 'Désignation de l’ouvrage'}
+          onChange={
+            estSousLot
+              ? undefined
+              : (e) => onRechercherPrix(poste.id, e.target.value, corpsEtatId, e.target)
+          }
           onBlur={(e) => {
             if (poste.designation !== e.target.value) {
               onModifier(lotId, poste.id, 'designation', e.target.value)
