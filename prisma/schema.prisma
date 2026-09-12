@@ -1,0 +1,617 @@
+// Schéma de données — application de gestion de missions d'économiste de la construction
+// Référence : SPEC_APP_ECONOMISTE.md §3, §4, §7 et ARCHITECTURE.md §4
+//
+// Conventions :
+//  - tous les montants sont des entiers de centimes (BigInt). Jamais de flottant.
+//  - quantités NUMERIC(14,3), coefficients NUMERIC(6,4), avancement NUMERIC(5,2).
+//  - toutes les racines portent ownerId (mono-utilisateur aujourd'hui, cabinet demain).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Énumérations métier
+// ---------------------------------------------------------------------------
+
+enum TypeOuvrage {
+  LOGEMENT_COLLECTIF
+  LOGEMENT_INDIVIDUEL
+  SCOLAIRE
+  TERTIAIRE
+  SANTE
+  REHABILITATION
+  AUTRE
+}
+
+enum NatureOperation {
+  CONSTRUCTION_NEUVE
+  REHABILITATION
+  EXTENSION
+}
+
+enum TypeMarche {
+  PUBLIC
+  PRIVE
+}
+
+enum StatutMission {
+  PROSPECT
+  EN_COURS
+  TERMINEE
+  ABANDONNEE
+}
+
+enum ModeFacturation {
+  FORFAIT
+  TJM
+  POURCENTAGE_TRAVAUX
+}
+
+enum PhaseContractuelle {
+  ESQ
+  APS
+  APD
+  PRO
+  DCE
+  ACT
+  DET
+  AOR
+}
+
+enum Unite {
+  M2
+  M3
+  ML
+  U
+  ENS
+  FORFAIT
+  KG
+  T
+  H
+  J
+}
+
+enum SourcePrix {
+  BASE_PERSONNELLE
+  BASE_TIERCE
+  DEVIS_FOURNISSEUR
+  SAISIE_MANUELLE
+}
+
+enum Zone {
+  METROPOLE
+  MARTINIQUE
+  AUTRE
+}
+
+enum TypePoste {
+  SOUS_LOT
+  OUVRAGE
+}
+
+enum StatutConsultation {
+  ENVOYEE
+  RELANCEE
+  OFFRE_RECUE
+  SANS_REPONSE
+  DESISTEMENT
+}
+
+enum TypeOffre {
+  BASE
+  VARIANTE
+  OPTION
+}
+
+enum StatutAvenant {
+  PROPOSE
+  ACCEPTE
+  REFUSE
+}
+
+enum ActionAudit {
+  CREATION
+  MODIFICATION
+  SUPPRESSION
+}
+
+// ---------------------------------------------------------------------------
+// Utilisateur et authentification (Auth.js, sessions en base donc révocables)
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  nom          String?
+  motDePasse   String?   @map("mot_de_passe") // hachage argon2id
+  totpSecret   String?   @map("totp_secret")
+  emailVerifie DateTime? @map("email_verifie")
+  creeLe       DateTime  @default(now()) @map("cree_le")
+
+  sessions          Session[]
+  missions          Mission[]
+  prixReferences    PrixReference[]
+  entreprises       Entreprise[]
+  corpsEtats        CorpsEtat[]
+  tramesCctp        TrameCctp[]
+  modelesHonoraires ModeleHonoraires[]
+  piecesJointes     PieceJointe[]
+  journalAudit      JournalAudit[]
+
+  @@map("utilisateur")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  jeton     String   @unique
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expireLe  DateTime @map("expire_le")
+  creeLe    DateTime @default(now()) @map("cree_le")
+  userAgent String?  @map("user_agent")
+  ip        String?
+
+  @@index([userId])
+  @@map("session")
+}
+
+// ---------------------------------------------------------------------------
+// Nomenclature TCE — spec §4, éditable, réordonnable, masquable
+// ---------------------------------------------------------------------------
+
+model CorpsEtat {
+  id      String  @id @default(cuid())
+  ownerId String  @map("owner_id")
+  owner   User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  code    String // "02", "13"...
+  libelle String
+  ordre   Int
+  masque  Boolean @default(false) // note climat tropical : chauffage masqué en Martinique
+
+  lots           Lot[]
+  prixReferences PrixReference[]
+  tramesCctp     TrameCctp[]
+
+  @@unique([ownerId, code])
+  @@index([ownerId, ordre])
+  @@map("corps_etat")
+}
+
+// ---------------------------------------------------------------------------
+// Mission — spec §3
+// ---------------------------------------------------------------------------
+
+model Mission {
+  id      String @id @default(cuid())
+  ownerId String @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  reference     String // "2026-014", unique par propriétaire
+  nomOperation  String  @map("nom_operation")
+  maitreOuvrage String? @map("maitre_ouvrage")
+  maitreOeuvre  String? @map("maitre_oeuvre")
+
+  typeOuvrage TypeOuvrage     @map("type_ouvrage")
+  nature      NatureOperation
+  typeMarche  TypeMarche      @map("type_marche")
+
+  surfaceShon   Decimal? @map("surface_shon") @db.Decimal(12, 2)
+  surfaceUtile  Decimal? @map("surface_utile") @db.Decimal(12, 2)
+
+  budgetPrevisionnelHt BigInt? @map("budget_previsionnel_ht") // centimes
+
+  phasesContractuelles PhaseContractuelle[] @map("phases_contractuelles")
+
+  dateDebut     DateTime?     @map("date_debut")
+  dateFinPrevue DateTime?     @map("date_fin_prevue")
+  statut        StatutMission @default(PROSPECT)
+
+  honorairesMissionHt BigInt?          @map("honoraires_mission_ht") // centimes
+  modeFacturation     ModeFacturation? @map("mode_facturation")
+
+  // Coefficient d'ajustement local, hérité par tous les chiffrages — spec §1 et §3
+  coefficientLocalDefaut Decimal @default("1.0000") @map("coefficient_local_defaut") @db.Decimal(6, 4)
+
+  // Ajout validé 10.1 : précision d'affichage ET de calcul du prix unitaire
+  precisionPu Int @default(2) @map("precision_pu")
+
+  // Affichage seul, calcul interne strictement HT — point 10.5. 8,5 % en Martinique.
+  tauxTva Decimal @default("8.50") @map("taux_tva") @db.Decimal(5, 2)
+
+  // Seuil d'alerte de dérive, paramétrable — spec §5.6
+  seuilDerivePourcent Decimal @default("5.00") @map("seuil_derive_pourcent") @db.Decimal(5, 2)
+
+  creeLe     DateTime @default(now()) @map("cree_le")
+  modifieLe  DateTime @updatedAt @map("modifie_le")
+  archiveeLe DateTime? @map("archivee_le")
+
+  lots                Lot[]
+  consultations       Consultation[]
+  situations          SituationTravaux[]
+  avenants            Avenant[]
+  versions            ChiffrageVersion[]
+  piecesJointes       PieceJointe[]
+  documentsGeneres    DocumentGenere[]
+  prixIssus           PrixReference[]      @relation("PrixOrigineMission")
+
+  @@unique([ownerId, reference])
+  @@index([ownerId, statut])
+  @@map("mission")
+}
+
+// ---------------------------------------------------------------------------
+// Lot — spec §3, plus le coefficient de lot (point 10.3 validé)
+// ---------------------------------------------------------------------------
+
+model Lot {
+  id        String  @id @default(cuid())
+  missionId String  @map("mission_id")
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  numero   String // "02"
+  intitule String // "Gros œuvre — Maçonnerie"
+  ordre    Int    @default(0)
+
+  corpsEtatId String?    @map("corps_etat_id")
+  corpsEtat   CorpsEtat? @relation(fields: [corpsEtatId], references: [id], onDelete: SetNull)
+
+  // Point 10.3 : surcharge du coefficient au niveau du lot. Null = hérite de la mission.
+  coefficientLocal Decimal? @map("coefficient_local") @db.Decimal(6, 4)
+
+  // Maintenus par le domaine, jamais saisis à la main.
+  montantEstimeHt BigInt  @default(0) @map("montant_estime_ht")
+  montantRetenuHt BigInt? @map("montant_retenu_ht")
+
+  postes        Poste[]
+  consultations Consultation[]
+  situations    SituationTravaux[]
+  avenants      Avenant[]
+
+  @@unique([missionId, numero])
+  @@index([missionId, ordre])
+  @@map("lot")
+}
+
+// ---------------------------------------------------------------------------
+// Poste — ligne de DPGF. Absorbe le sous-lot (point 10.2 validé) : arbre auto-référent.
+// ---------------------------------------------------------------------------
+
+model Poste {
+  id    String @id @default(cuid())
+  lotId String @map("lot_id")
+  lot   Lot    @relation(fields: [lotId], references: [id], onDelete: Cascade)
+
+  parentId String? @map("parent_id")
+  parent   Poste?  @relation("PosteHierarchie", fields: [parentId], references: [id], onDelete: Cascade)
+  enfants  Poste[] @relation("PosteHierarchie")
+
+  type  TypePoste @default(OUVRAGE)
+  ordre Int       @default(0)
+
+  code        String? // "02.03.01"
+  designation String
+  unite       Unite?
+
+  quantite Decimal? @db.Decimal(14, 3)
+
+  // Prix avant coefficient, en centimes.
+  prixUnitaireHtBase BigInt? @map("prix_unitaire_ht_base")
+
+  // Null = hérite du lot, qui hérite lui-même de la mission.
+  coefficientApplique Decimal? @map("coefficient_applique") @db.Decimal(6, 4)
+
+  // Calculés par le domaine et écrits ici en lecture seule (ARCHITECTURE.md §4).
+  prixUnitaireHtFinal BigInt? @map("prix_unitaire_ht_final")
+  montantHt           BigInt  @default(0) @map("montant_ht")
+
+  sourcePrix     SourcePrix @default(SAISIE_MANUELLE) @map("source_prix")
+  dateSourcePrix DateTime?  @map("date_source_prix")
+
+  // Lien DPGF <-> CCTP — spec §5.4. Contenu structuré TipTap.
+  texteCctp Json? @map("texte_cctp")
+
+  lignesOffre   LigneOffre[]
+  piecesJointes PieceJointe[]
+
+  @@index([lotId, ordre])
+  @@index([parentId])
+  @@map("poste")
+}
+
+// ---------------------------------------------------------------------------
+// Versions de chiffrage (point 10.4 validé) — référent stable pour l'écart
+// ---------------------------------------------------------------------------
+
+model ChiffrageVersion {
+  id        String  @id @default(cuid())
+  missionId String  @map("mission_id")
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  phase       PhaseContractuelle
+  libelle     String
+  figeLe      DateTime           @default(now()) @map("fige_le")
+  montantTceHt BigInt            @map("montant_tce_ht")
+
+  // Instantané intégral du chiffrage au moment du figeage.
+  contenu Json
+
+  @@index([missionId, figeLe])
+  @@map("chiffrage_version")
+}
+
+// ---------------------------------------------------------------------------
+// Base de prix personnelle — spec §3 et §6
+// ---------------------------------------------------------------------------
+
+model PrixReference {
+  id      String @id @default(cuid())
+  ownerId String @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  code        String?
+  designation String
+  unite       Unite
+
+  corpsEtatId String?    @map("corps_etat_id")
+  corpsEtat   CorpsEtat? @relation(fields: [corpsEtatId], references: [id], onDelete: SetNull)
+
+  prixUnitaireHt BigInt   @map("prix_unitaire_ht") // centimes
+  dateReleve     DateTime @map("date_releve")
+
+  origineMissionId String?  @map("origine_mission_id")
+  origineMission   Mission? @relation("PrixOrigineMission", fields: [origineMissionId], references: [id], onDelete: SetNull)
+
+  // Contexte d'origine du prix : type d'ouvrage et nature de l'opération.
+  contexteTypeOuvrage TypeOuvrage?     @map("contexte_type_ouvrage")
+  contexteNature      NatureOperation? @map("contexte_nature")
+
+  zone Zone @default(MARTINIQUE)
+
+  piecesJointes PieceJointe[]
+
+  @@index([ownerId, corpsEtatId])
+  @@index([ownerId, code])
+  @@index([ownerId, dateReleve])
+  @@map("prix_reference")
+}
+
+// ---------------------------------------------------------------------------
+// Répertoire d'entreprises et consultation — spec §3 et §5.5 (phase 2)
+// ---------------------------------------------------------------------------
+
+model Entreprise {
+  id      String @id @default(cuid())
+  ownerId String @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  raisonSociale String  @map("raison_sociale")
+  siret         String?
+  contactNom    String? @map("contact_nom")
+  email         String?
+  telephone     String?
+
+  corpsEtatQualifies String[] @map("corps_etat_qualifies")
+  zoneIntervention   String?  @map("zone_intervention")
+  historiqueNotes    String?  @map("historique_notes")
+
+  consultations Consultation[]
+
+  @@index([ownerId, raisonSociale])
+  @@map("entreprise")
+}
+
+model Consultation {
+  id        String  @id @default(cuid())
+  missionId String  @map("mission_id")
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  lotId String @map("lot_id")
+  lot   Lot    @relation(fields: [lotId], references: [id], onDelete: Cascade)
+
+  entrepriseId String     @map("entreprise_id")
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+
+  dateEnvoiDce      DateTime? @map("date_envoi_dce")
+  dateLimiteRemise  DateTime? @map("date_limite_remise")
+  dateRelance       DateTime? @map("date_relance")
+  dateReceptionOffre DateTime? @map("date_reception_offre")
+
+  statut StatutConsultation @default(ENVOYEE)
+
+  offres Offre[]
+
+  @@unique([lotId, entrepriseId])
+  @@index([missionId, statut])
+  @@map("consultation")
+}
+
+model Offre {
+  id             String       @id @default(cuid())
+  consultationId String       @map("consultation_id")
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+
+  type          TypeOffre @default(BASE) // point 10.8 : base, variante, option
+  libelle       String?
+  montantHt     BigInt    @map("montant_ht")
+  remiseGlobaleHt BigInt  @default(0) @map("remise_globale_ht")
+  dateReception DateTime  @map("date_reception")
+
+  conforme               Boolean @default(true)
+  observationsTechniques String? @map("observations_techniques")
+
+  lignes        LigneOffre[]
+  piecesJointes PieceJointe[]
+
+  @@index([consultationId])
+  @@map("offre")
+}
+
+model LigneOffre {
+  id      String @id @default(cuid())
+  offreId String @map("offre_id")
+  offre   Offre  @relation(fields: [offreId], references: [id], onDelete: Cascade)
+
+  posteId String @map("poste_id")
+  poste   Poste  @relation(fields: [posteId], references: [id], onDelete: Cascade)
+
+  prixUnitaireHt BigInt @map("prix_unitaire_ht")
+  montantHt      BigInt @map("montant_ht")
+
+  @@unique([offreId, posteId])
+  @@map("ligne_offre")
+}
+
+// ---------------------------------------------------------------------------
+// Suivi financier de chantier — spec §3 et §5.6 (phase 3)
+// Champs de décompte réservés dès maintenant (point 10.6).
+// ---------------------------------------------------------------------------
+
+model SituationTravaux {
+  id        String  @id @default(cuid())
+  missionId String  @map("mission_id")
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  lotId String @map("lot_id")
+  lot   Lot    @relation(fields: [lotId], references: [id], onDelete: Cascade)
+
+  numeroSituation Int      @map("numero_situation")
+  periode         DateTime
+
+  avancementPourcent Decimal @map("avancement_pourcent") @db.Decimal(5, 2)
+  montantCumuleHt    BigInt  @map("montant_cumule_ht")
+  montantPeriodeHt   BigInt  @map("montant_periode_ht")
+
+  // Réservés pour la phase 3 — point 10.6
+  retenueGarantieHt BigInt @default(0) @map("retenue_garantie_ht")
+  avanceRemboursee  BigInt @default(0) @map("avance_remboursee")
+  compteProrataHt   BigInt @default(0) @map("compte_prorata_ht")
+
+  dateValidation DateTime? @map("date_validation")
+
+  @@unique([lotId, numeroSituation])
+  @@index([missionId, periode])
+  @@map("situation_travaux")
+}
+
+model Avenant {
+  id        String  @id @default(cuid())
+  missionId String  @map("mission_id")
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  lotId String? @map("lot_id")
+  lot   Lot?    @relation(fields: [lotId], references: [id], onDelete: SetNull)
+
+  numero    Int
+  objet     String
+  montantHt BigInt        @map("montant_ht") // peut être négatif (moins-value)
+  date      DateTime
+  motif     String?
+  statut    StatutAvenant @default(PROPOSE)
+
+  @@index([missionId, statut])
+  @@map("avenant")
+}
+
+// ---------------------------------------------------------------------------
+// Trames documentaires — spec §5.4
+// ---------------------------------------------------------------------------
+
+model TrameCctp {
+  id      String @id @default(cuid())
+  ownerId String @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  corpsEtatId String?    @map("corps_etat_id")
+  corpsEtat   CorpsEtat? @relation(fields: [corpsEtatId], references: [id], onDelete: SetNull)
+
+  intitule String
+  contenu  Json // TipTap
+  creeLe   DateTime @default(now()) @map("cree_le")
+
+  @@index([ownerId, corpsEtatId])
+  @@map("trame_cctp")
+}
+
+model ModeleHonoraires {
+  id      String @id @default(cuid())
+  ownerId String @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  intitule String
+  contenu  Json
+  creeLe   DateTime @default(now()) @map("cree_le")
+
+  @@index([ownerId])
+  @@map("modele_honoraires")
+}
+
+// ---------------------------------------------------------------------------
+// Pièces jointes (point 10.9 validé) — derrière un port Stockage
+// ---------------------------------------------------------------------------
+
+model PieceJointe {
+  id      String @id @default(cuid())
+  ownerId String @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  nomFichier  String @map("nom_fichier")
+  typeMime    String @map("type_mime")
+  tailleOctets Int   @map("taille_octets")
+  cheminStockage String @map("chemin_stockage")
+  empreinte   String // SHA-256
+
+  missionId       String?        @map("mission_id")
+  mission         Mission?       @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  posteId         String?        @map("poste_id")
+  poste           Poste?         @relation(fields: [posteId], references: [id], onDelete: Cascade)
+  prixReferenceId String?        @map("prix_reference_id")
+  prixReference   PrixReference? @relation(fields: [prixReferenceId], references: [id], onDelete: Cascade)
+  offreId         String?        @map("offre_id")
+  offre           Offre?         @relation(fields: [offreId], references: [id], onDelete: Cascade)
+
+  deposeLe DateTime @default(now()) @map("depose_le")
+
+  @@index([ownerId])
+  @@map("piece_jointe")
+}
+
+// ---------------------------------------------------------------------------
+// Traçabilité
+// ---------------------------------------------------------------------------
+
+model DocumentGenere {
+  id        String  @id @default(cuid())
+  missionId String  @map("mission_id")
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  type       String // "DPGF_XLSX", "DPGF_ENTREPRISE_XLSX", "CCTP_DOCX", "CCTP_PDF"...
+  phase      PhaseContractuelle?
+  nomFichier String              @map("nom_fichier")
+  empreinte  String
+  genereLe   DateTime            @default(now()) @map("genere_le")
+
+  @@index([missionId, genereLe])
+  @@map("document_genere")
+}
+
+model JournalAudit {
+  id      String @id @default(cuid())
+  ownerId String @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  entite   String // "Poste", "Lot", "Avenant"...
+  entiteId String      @map("entite_id")
+  action   ActionAudit
+  avant    Json?
+  apres    Json?
+  survenuLe DateTime   @default(now()) @map("survenu_le")
+
+  @@index([ownerId, entite, entiteId])
+  @@map("journal_audit")
+}

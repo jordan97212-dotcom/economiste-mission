@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verification:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: eco
+          POSTGRES_PASSWORD: eco
+          POSTGRES_DB: economiste
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U eco -d economiste"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://eco:eco@localhost:5433/economiste?schema=public
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Générer le client Prisma
+        run: npm run db:generate
+
+      - name: Appliquer les migrations
+        run: npm run db:deploy
+
+      - name: Charger le jeu initial
+        run: npm run db:seed
+
+      - name: Vérifier le typage
+        run: npm run typecheck
+
+      - name: Lancer les tests
+        run: npm test
