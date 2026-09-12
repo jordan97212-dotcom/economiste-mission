@@ -25,7 +25,7 @@ const MODELES_CLOISONNES = new Set([
   'PrixReference',
   'Entreprise',
   'CorpsEtat',
-  'TrameCctp',
+  'Trame',
   'ModeleHonoraires',
   'PieceJointe',
   'JournalAudit',

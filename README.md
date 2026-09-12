@@ -17,13 +17,15 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 4 | Base de prix personnelle et assistance au prix | Livré |
 | 5 | Import DPGF Excel | Livré |
 | 6 | Export DPGF Excel | Livré |
-| 7 | DCE : CCTP, CCAP, CCTG, contrôle de cohérence | À faire |
+| 7 | DCE : CCTP, CCAP, CCTG, contrôle de cohérence | Livré |
 | 8 | Honoraires, export complet, journal d'audit | À faire |
 
-L'application couvre le cycle de chiffrage : création et duplication de mission,
-saisie au clavier dans une grille, import d'un DPGF Excel existant, assistance au
-prix depuis la base personnelle, et export du bordereau en deux variantes. Il
-reste les pièces écrites du DCE, puis les phases 2 et 3 de la spécification.
+La phase 1 de la spécification est couverte : cadrage de mission, chiffrage
+détaillé et rédaction du DCE. On crée ou duplique une mission, on saisit son
+chiffrage au clavier ou par import Excel, on s'appuie sur sa base de prix, on
+rédige les textes de CCTP, et on sort le bordereau et les pièces écrites en
+Excel, Word et PDF. Restent les phases 2 et 3 : consultation des entreprises,
+puis suivi financier de chantier.
 
 ## Démarrer
 
@@ -131,6 +133,61 @@ de base et le coefficient ne sortent jamais dans un document destiné à un tier
 Un onglet technique masqué porte la correspondance entre chaque ligne et son
 poste, ce qui rendra fiable la reprise des offres en phase 2.
 
+## Pièces écrites du DCE
+
+Le texte descriptif est porté par l'ouvrage lui-même, pas par un document à part.
+Le lien entre le DPGF et le CCTP n'est donc pas une jointure à maintenir : la
+génération parcourt les lots dans l'ordre et assemble ce que chaque ouvrage
+porte. Un ouvrage laissé sans texte ressort avec une mention visible en rouge,
+jamais par un blanc.
+
+Le contrôle de cohérence tourne avant toute génération de CCTP et refuse la
+sortie tant qu'il reste une anomalie bloquante. Un lien permet de passer outre en
+connaissance de cause.
+
+| Contrôle | Sévérité |
+|---|---|
+| Ouvrage du DPGF sans texte de CCTP | bloquante |
+| Lot déclaré mais vide, ou sans aucun ouvrage chiffrable | bloquante |
+| Article décrit au CCTP mais ni quantité ni prix | à vérifier |
+| Désignation modifiée depuis l'écriture du texte | à vérifier |
+| Unité citée dans le texte qui contredit celle du DPGF | à vérifier |
+| Quantité nulle, prix à zéro, unité absente | à vérifier |
+
+Le §5.4 demande aussi de signaler « un article CCTP sans ligne de DPGF ». Dans ce
+modèle un tel orphelin ne peut pas exister, puisque le texte disparaît avec sa
+ligne. Le contrôle équivalent, et celui qui a du sens ici, est l'article décrit
+mais non chiffré.
+
+### Format des textes
+
+Un texte brut à conventions simples : deux dièses pour un sous-titre, un tiret
+pour une puce, une ligne vide entre deux paragraphes. Le même analyseur sert à
+l'aperçu écran et au rendu Word, donc les deux ne peuvent pas diverger, et le
+contenu reste lisible sans l'application. L'architecture prévoyait un éditeur
+riche ; il pourra venir plus tard en produisant le même format.
+
+### Variables de mission
+
+Les trames de CCAP et de CCTG acceptent des variables entre doubles accolades,
+résolues à la génération : `{{nom_operation}}`, `{{maitre_ouvrage}}`,
+`{{montant_travaux_ht}}` et quelques autres. Une variable non renseignée reste
+visible dans le document et se retrouve dans la liste des manquantes, plutôt que
+de laisser un trou silencieux.
+
+### Word et PDF
+
+Le document Word est la source, le PDF sa conversion par LibreOffice. La mise en
+page, le sommaire et la pagination sont donc calculés une seule fois, par le même
+moteur. Le serveur doit disposer du module Writer :
+
+```bash
+apt-get install -y libreoffice-writer
+```
+
+Sans lui, l'application reste utilisable : elle détecte l'absence en tentant une
+vraie conversion, masque les boutons PDF et continue de produire le Word.
+
 ## Organisation du code
 
 ```
@@ -140,16 +197,21 @@ src/
     chiffrage/       cascade des coefficients, calcul de ligne, totaux, ratios
     situations/      avancement, cumuls, tableau financier, alerte de dérive
     offres/          écarts vis-à-vis de l'estimatif, offres à vérifier
+    texte/           format des pièces écrites, variables de mission
+    coherence/       contrôle DPGF vers CCTP avant export
   application/     cas d'usage et ports
     ports/           SourcePrix, en attendant une éventuelle base tierce
     missions/        création, modification, duplication
     chiffrage/       recalcul persisté, arborescence, collage
     prix/            base de prix personnelle, import de classeur
     import/          analyse d'un DPGF, sans entrée-sortie
+    dce/             textes, cohérence, assemblage des pièces
+    trames/          bibliothèque de textes réutilisables
     saisie.ts        lecture des nombres et unités d'un tableur français
   infrastructure/  Prisma cloisonné par propriétaire, authentification argon2id
     sources-prix/    implémentation du port SourcePrix
     excel/           lecture de classeurs, génération du DPGF
+    docx/            pièces écrites et conversion PDF
   app/             Next.js : pages, actions serveur
   components/      grille de chiffrage, formulaire de mission
 prisma/

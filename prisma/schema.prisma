@@ -115,6 +115,13 @@ enum StatutAvenant {
   REFUSE
 }
 
+enum TypeTrame {
+  CCTP
+  CCAP
+  CCTG
+  HONORAIRES
+}
+
 enum ActionAudit {
   CREATION
   MODIFICATION
@@ -139,7 +146,7 @@ model User {
   prixReferences    PrixReference[]
   entreprises       Entreprise[]
   corpsEtats        CorpsEtat[]
-  tramesCctp        TrameCctp[]
+  trames            Trame[]
   modelesHonoraires ModeleHonoraires[]
   piecesJointes     PieceJointe[]
   journalAudit      JournalAudit[]
@@ -176,7 +183,7 @@ model CorpsEtat {
 
   lots           Lot[]
   prixReferences PrixReference[]
-  tramesCctp     TrameCctp[]
+  trames         Trame[]
 
   @@unique([ownerId, code])
   @@index([ownerId, ordre])
@@ -530,19 +537,25 @@ model Avenant {
 // Trames documentaires — spec §5.4
 // ---------------------------------------------------------------------------
 
-model TrameCctp {
+/// Trame de pièce écrite : CCTP par corps d'état, mais aussi CCAP et CCTG,
+/// qui sont propres à l'opération et non au lot.
+model Trame {
   id      String @id @default(cuid())
   ownerId String @map("owner_id")
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  type TypeTrame @default(CCTP)
 
   corpsEtatId String?    @map("corps_etat_id")
   corpsEtat   CorpsEtat? @relation(fields: [corpsEtatId], references: [id], onDelete: SetNull)
 
   intitule String
-  contenu  Json // TipTap
+  /// Texte structuré : { format, contenu }. Voir src/domain/texte.
+  contenu  Json
   creeLe   DateTime @default(now()) @map("cree_le")
+  modifieLe DateTime @updatedAt @map("modifie_le")
 
-  @@index([ownerId, corpsEtatId])
+  @@index([ownerId, type, corpsEtatId])
   @@map("trame_cctp")
 }
 

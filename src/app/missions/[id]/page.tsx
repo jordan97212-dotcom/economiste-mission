@@ -62,6 +62,9 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
           <Link href={`/missions/${mission.id}/chiffrage`} className="bouton bouton-primaire">
             Ouvrir le chiffrage
           </Link>
+          <Link href={`/missions/${mission.id}/dce`} className="bouton">
+            Pièces écrites
+          </Link>
           <Link href={`/missions/${mission.id}/import`} className="bouton">
             Importer un DPGF
           </Link>

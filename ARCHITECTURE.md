@@ -268,6 +268,14 @@ Le §9 de la spec demande de signaler plutôt que de choisir silencieusement. Vo
 
 **9.11 — Travail hors connexion.** Le §7 évoque la consultation sur tablette en réunion de chantier, où la connectivité est souvent mauvaise. La spec ne demande pas le mode hors ligne. *Par défaut* : hors périmètre en phase 1, avec une mise en cache en lecture seule des écrans de consultation étudiée en phase 3. Je le signale car c'est le genre d'exigence qui coûte cher si elle arrive tard.
 
+**Révision du lot 7 — l'éditeur riche.** La version 1 annonçait TipTap pour les
+textes de CCTP. À l'implémentation, un format de texte brut à conventions simples
+s'est révélé meilleur ici : le même analyseur sert à l'aperçu écran et au rendu
+Word, donc les deux ne peuvent pas diverger sur une pièce contractuelle, et le
+contenu reste lisible hors de l'application, ce que demande le §2.4. Le stockage
+reste du JSON et la frontière reste l'analyseur : brancher un éditeur riche plus
+tard ne touchera rien d'autre.
+
 **Point mineur — correction apportée après vérification** : j'avais écrit en version 1 que la liste du §4 contenait 22 corps d'état et proposé d'en ajouter un. C'était une erreur de comptage de ma part : la liste en contient bien 23, conformément au §3. Le jeu initial reprend donc les 23 postes de la spécification, sans ajout ni retrait. La table restant éditable, « Désamiantage / démolition » reste facile à ajouter si les opérations de réhabilitation le demandent.
 
 ---
