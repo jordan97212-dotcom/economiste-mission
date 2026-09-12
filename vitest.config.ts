@@ -7,6 +7,9 @@ export default defineConfig({
   },
   test: {
     include: ['src/**/*.test.ts'],
+    setupFiles: ['./vitest.setup.ts'],
+    // Les tests d'intégration partagent une base : on évite les courses.
+    fileParallelism: false,
     coverage: { include: ['src/domain/**'], thresholds: { lines: 95, functions: 95 } },
   },
 })

@@ -1,4 +1,4 @@
-import { Decimal, dec, type EntreeDecimale } from '../money/decimal.js'
+import { Decimal, dec, type EntreeDecimale } from '../money/decimal'
 
 /** Niveau du chiffrage d'où provient le coefficient effectivement appliqué. */
 export type OrigineCoefficient = 'ligne' | 'lot' | 'mission'

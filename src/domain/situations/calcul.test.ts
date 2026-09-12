@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import * as Money from '../money/money.js'
+import * as Money from '../money/money'
 import {
   calculerSituation,
   situationDepuisMontant,
   avancementDepuisMontant,
   marcheActuel,
   tableauFinancier,
-} from './calcul.js'
+} from './calcul'
 
 const euros = (v: string) => Money.depuisEuros(v)
 

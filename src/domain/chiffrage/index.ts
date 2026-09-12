@@ -1,2 +1,2 @@
-export * from './coefficient.js'
-export * from './calcul.js'
+export * from './coefficient'
+export * from './calcul'

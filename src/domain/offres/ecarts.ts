@@ -1,6 +1,6 @@
-import { Decimal, arrondiCommercial } from '../money/decimal.js'
-import * as Money from '../money/money.js'
-import type { Money as MoneyValue } from '../money/money.js'
+import { Decimal, arrondiCommercial } from '../money/decimal'
+import * as Money from '../money/money'
+import type { Money as MoneyValue } from '../money/money'
 
 export interface Ecart {
   /** Écart en euros : positif si l'offre dépasse l'estimatif. */

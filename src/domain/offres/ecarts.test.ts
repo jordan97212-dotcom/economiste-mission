@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import * as Money from '../money/money.js'
-import { ecartVsEstimatif, detecterAnomalies, medianne, moinsDisante } from './ecarts.js'
+import * as Money from '../money/money'
+import { ecartVsEstimatif, detecterAnomalies, medianne, moinsDisante } from './ecarts'
 
 const euros = (v: string) => Money.depuisEuros(v)
 

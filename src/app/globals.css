@@ -1,0 +1,481 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Identité visuelle — la même que celle du document d'architecture, pour que
+   l'outil et sa documentation se reconnaissent : encre ardoise à nuance verte,
+   accent teal profond, ambre réservé aux alertes. Chiffres en chasse fixe.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  --color-fond: #f4f6f4;
+  --color-surface: #ffffff;
+  --color-surface-alt: #ecf0ee;
+  --color-encre: #13211d;
+  --color-encre-doux: #3d4e48;
+  --color-attenue: #64736d;
+  --color-filet: #d8dfda;
+  --color-filet-doux: #e7ece8;
+  --color-accent: #0f6e5a;
+  --color-accent-encre: #0b5546;
+  --color-accent-clair: #e2efe9;
+  --color-alerte: #8a550b;
+  --color-alerte-clair: #f6eddc;
+  --color-danger: #9b2c2c;
+
+  --font-corps: 'Public Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+
+html {
+  background: var(--color-fond);
+}
+
+body {
+  background: var(--color-fond);
+  color: var(--color-encre);
+  font-family: var(--font-corps);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  text-wrap: balance;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+a {
+  color: var(--color-accent-encre);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* --------------------------------- bandeau -------------------------------- */
+
+.bandeau {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-filet);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.bandeau-corps {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.marque {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-accent-encre);
+  font-weight: 600;
+}
+
+.contenu {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 28px 20px 80px;
+}
+
+.contenu-large {
+  max-width: 100%;
+  margin: 0;
+  padding: 20px 16px 60px;
+}
+
+/* --------------------------------- libellés ------------------------------- */
+
+.surtitre {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--color-attenue);
+  font-weight: 500;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.chiffre {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.attenue {
+  color: var(--color-attenue);
+}
+
+/* --------------------------------- boutons -------------------------------- */
+
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: inherit;
+  border: 1px solid var(--color-filet);
+  background: var(--color-surface);
+  color: var(--color-encre);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.bouton:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+  border-color: var(--color-attenue);
+  text-decoration: none;
+}
+.bouton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bouton-primaire {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+.bouton-primaire:hover:not(:disabled) {
+  background: var(--color-accent-encre);
+  border-color: var(--color-accent-encre);
+}
+
+.bouton-discret {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-attenue);
+  padding: 4px 8px;
+}
+.bouton-discret:hover:not(:disabled) {
+  background: var(--color-surface-alt);
+  color: var(--color-encre);
+}
+
+.bouton-danger {
+  color: var(--color-danger);
+}
+
+/* -------------------------------- formulaires ----------------------------- */
+
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.champ > label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-attenue);
+  font-weight: 500;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='date'],
+input[type='number'],
+select,
+textarea {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 7px 10px;
+  border: 1px solid var(--color-filet);
+  border-radius: 3px;
+  background: var(--color-surface);
+  color: var(--color-encre);
+  width: 100%;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent-clair);
+}
+
+.grille-champs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* --------------------------------- cartes --------------------------------- */
+
+.carte {
+  background: var(--color-surface);
+  border: 1px solid var(--color-filet);
+  border-radius: 4px;
+}
+
+.carte-entete {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-filet);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.carte-corps {
+  padding: 18px;
+}
+
+/* -------------------------------- étiquettes ------------------------------ */
+
+.etiquette {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 2px;
+  border: 1px solid var(--color-filet);
+  background: var(--color-surface-alt);
+  color: var(--color-encre-doux);
+  white-space: nowrap;
+}
+
+.etiquette-accent {
+  background: var(--color-accent-clair);
+  border-color: transparent;
+  color: var(--color-accent-encre);
+}
+
+.etiquette-alerte {
+  background: var(--color-alerte-clair);
+  border-color: transparent;
+  color: var(--color-alerte);
+}
+
+/* --------------------------------- tableaux ------------------------------- */
+
+.tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tableau th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-attenue);
+  font-weight: 500;
+  padding: 9px 12px;
+  border-bottom: 1.5px solid var(--color-encre);
+  white-space: nowrap;
+}
+
+.tableau td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--color-filet-doux);
+  vertical-align: top;
+}
+
+.tableau tbody tr:hover {
+  background: var(--color-surface-alt);
+}
+
+.defilement {
+  overflow-x: auto;
+}
+
+/* ------------------------------ grille de chiffrage ----------------------- */
+
+.grille {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13.5px;
+  background: var(--color-surface);
+}
+
+.grille th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--color-surface-alt);
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-attenue);
+  font-weight: 500;
+  padding: 8px 8px;
+  border-bottom: 1.5px solid var(--color-encre);
+  white-space: nowrap;
+}
+
+.grille td {
+  padding: 0;
+  border-bottom: 1px solid var(--color-filet-doux);
+  border-right: 1px solid var(--color-filet-doux);
+  height: 31px;
+}
+
+.grille td:last-child {
+  border-right: none;
+}
+
+.ligne-sous-lot {
+  background: var(--color-surface-alt);
+  font-weight: 600;
+}
+
+.ligne-selectionnee td {
+  background: var(--color-accent-clair);
+}
+
+.cellule {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: inherit;
+  padding: 5px 8px;
+  outline: none;
+}
+
+.cellule:focus {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.cellule-chiffre {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cellule-calculee {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding: 5px 8px;
+  color: var(--color-encre-doux);
+  background: var(--color-surface-alt);
+  display: block;
+  line-height: 21px;
+}
+
+.cellule-heritee {
+  color: var(--color-attenue);
+}
+
+.barre-outils {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+}
+
+.etat-enregistrement {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-attenue);
+  letter-spacing: 0.04em;
+}
+
+.etat-enregistrement[data-etat='modifie'] {
+  color: var(--color-alerte);
+}
+.etat-enregistrement[data-etat='erreur'] {
+  color: var(--color-danger);
+}
+
+/* --------------------------------- divers --------------------------------- */
+
+.vide {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--color-attenue);
+  font-size: 14px;
+}
+
+.message-erreur {
+  background: #fdecea;
+  border: 1px solid #f3c2bd;
+  color: var(--color-danger);
+  padding: 10px 14px;
+  border-radius: 3px;
+  font-size: 14px;
+}
+
+.total-bandeau {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-encre);
+  color: #fff;
+  padding: 10px 16px;
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-size: 13.5px;
+  z-index: 10;
+}
+
+.total-bandeau .valeur {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.total-bandeau .surtitre {
+  color: #9fb3ac;
+}

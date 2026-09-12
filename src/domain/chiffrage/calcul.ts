@@ -1,9 +1,9 @@
-import { Decimal, dec, arrondiCommercial, type EntreeDecimale } from '../money/decimal.js'
-import * as Money from '../money/money.js'
-import type { Money as MoneyValue } from '../money/money.js'
-import * as PU from '../money/prix-unitaire.js'
-import type { PrixUnitaire } from '../money/prix-unitaire.js'
-import { resoudreCoefficient, type CascadeCoefficient, type CoefficientEffectif } from './coefficient.js'
+import { Decimal, dec, arrondiCommercial, type EntreeDecimale } from '../money/decimal'
+import * as Money from '../money/money'
+import type { Money as MoneyValue } from '../money/money'
+import * as PU from '../money/prix-unitaire'
+import type { PrixUnitaire } from '../money/prix-unitaire'
+import { resoudreCoefficient, type CascadeCoefficient, type CoefficientEffectif } from './coefficient'
 
 export interface EntreeOuvrage {
   readonly quantite?: EntreeDecimale | null

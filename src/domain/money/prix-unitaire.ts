@@ -1,4 +1,4 @@
-import { Decimal, dec, arrondiCommercial, type EntreeDecimale } from './decimal.js'
+import { Decimal, dec, arrondiCommercial, type EntreeDecimale } from './decimal'
 
 declare const MARQUE_PU: unique symbol
 

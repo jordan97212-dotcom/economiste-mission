@@ -1,6 +1,6 @@
-import { Decimal, dec, arrondiCommercial, type EntreeDecimale } from '../money/decimal.js'
-import * as Money from '../money/money.js'
-import type { Money as MoneyValue } from '../money/money.js'
+import { Decimal, dec, arrondiCommercial, type EntreeDecimale } from '../money/decimal'
+import * as Money from '../money/money'
+import type { Money as MoneyValue } from '../money/money'
 
 export interface EntreeSituation {
   /** Montant du marché du lot, avenants acceptés compris. */

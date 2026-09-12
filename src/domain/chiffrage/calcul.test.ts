@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { dec } from '../money/decimal.js'
-import * as Money from '../money/money.js'
-import * as PU from '../money/prix-unitaire.js'
-import { resoudreCoefficient, COEFFICIENT_MAX } from './coefficient.js'
+import { dec } from '../money/decimal'
+import * as Money from '../money/money'
+import * as PU from '../money/prix-unitaire'
+import { resoudreCoefficient, COEFFICIENT_MAX } from './coefficient'
 import {
   calculerOuvrage,
   totaliserArbre,
@@ -11,7 +11,7 @@ import {
   ratioEuroParM2,
   recapituler,
   type NoeudChiffrage,
-} from './calcul.js'
+} from './calcul'
 
 const COEF_MISSION = '1.2500'
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Decimal, dec, arrondiCommercial } from './decimal.js'
-import * as Money from './money.js'
-import * as PU from './prix-unitaire.js'
+import { Decimal, dec, arrondiCommercial } from './decimal'
+import * as Money from './money'
+import * as PU from './prix-unitaire'
 
 describe('arrondi commercial', () => {
   it('arrondit au plus proche et s’éloigne de zéro à l’équidistance', () => {
