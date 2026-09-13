@@ -27,7 +27,23 @@ rédige les textes de CCTP, et on sort le bordereau et les pièces écrites en
 Excel, Word et PDF. Restent les phases 2 et 3 : consultation des entreprises,
 puis suivi financier de chantier.
 
-## Démarrer
+## Pour s'en servir
+
+**[LANCER-SUR-MON-PC.md](LANCER-SUR-MON-PC.md)** — installation sur un poste
+Windows, sans rien connaître au développement. Docker Desktop, puis un fichier à
+double-cliquer. La marche à suivre couvre aussi les sauvegardes et ce qu'un
+premier test réel doit chercher à vérifier.
+
+```bash
+docker compose up -d --build
+```
+
+Un seul prérequis : Docker. Les migrations s'appliquent et la nomenclature se
+pose au démarrage, sans jamais écraser de donnée existante — on peut redémarrer
+autant qu'on veut. Vos données vivent dans le volume `pgdata`, qui survit à
+l'arrêt et à la mise à jour.
+
+## Démarrer pour développer
 
 ```bash
 npm install
@@ -58,6 +74,7 @@ Il suffit que `DATABASE_URL` pointe dessus.
 | `npm run db:studio` | Ouvre l'explorateur de base Prisma |
 | `npm run dev` | Lance l'application en développement |
 | `npm run build` | Construit la version de production |
+| `docker compose up -d --build` | Lance l'application complète, base comprise |
 
 Les tests d'intégration ont besoin de la base : démarrez-la avant `npm test`.
 

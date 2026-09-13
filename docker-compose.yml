@@ -1,19 +1,39 @@
+# Tout ce qu'il faut pour faire tourner l'application, en une commande.
+# Voir LANCER-SUR-MON-PC.md pour la marche à suivre.
+
 services:
   db:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: eco
-      POSTGRES_PASSWORD: eco
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eco}
       POSTGRES_DB: economiste
     ports:
-      - '5433:5432'
+      # Ouvert sur la machine seulement, pour les outils de développement.
+      - '127.0.0.1:5433:5432'
     volumes:
+      # Vos données vivent ici. Ce volume survit à l'arrêt et à la mise à jour
+      # de l'application : seul « docker compose down -v » l'effacerait.
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U eco -d economiste']
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://eco:${POSTGRES_PASSWORD:-eco}@db:5432/economiste?schema=public
+      SEED_EMAIL: ${SEED_EMAIL:-economiste@local}
+    ports:
+      # 127.0.0.1 : accessible depuis ce PC uniquement, jamais depuis le réseau.
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   pgdata:

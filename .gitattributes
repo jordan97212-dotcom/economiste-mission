@@ -1,0 +1,15 @@
+# Fins de ligne — sans ces règles, un clone sous Windows casse le démarrage.
+
+# Par défaut, Git décide.
+* text=auto
+
+# Les scripts exécutés dans le conteneur Linux gardent des fins de ligne Unix.
+# Avec des fins de ligne Windows, /bin/sh refuse le fichier et le conteneur
+# s'arrête sur une erreur illisible.
+*.sh text eol=lf
+Dockerfile text eol=lf
+demarrage.sh text eol=lf
+
+# Les fichiers à double-cliquer sous Windows gardent des fins de ligne Windows.
+*.bat text eol=crlf
+*.cmd text eol=crlf

@@ -1,0 +1,11 @@
+# Ce qui ne doit jamais entrer dans l'image.
+node_modules
+.next
+.git
+.env
+.env.local
+sauvegardes
+coverage
+dist
+*.log
+tsconfig.tsbuildinfo

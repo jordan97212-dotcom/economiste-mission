@@ -6,3 +6,5 @@ dist/
 coverage/
 *.log
 tsconfig.tsbuildinfo
+sauvegardes/
+prisma/seed.mjs

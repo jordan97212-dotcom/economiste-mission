@@ -45,21 +45,28 @@ async function main(): Promise<void> {
     create: { email, nom: 'Économiste' },
   })
 
-  for (const [index, corps] of NOMENCLATURE_TCE.entries()) {
-    await prisma.corpsEtat.upsert({
-      where: { ownerId_code: { ownerId: utilisateur.id, code: corps.code } },
-      update: { libelle: corps.libelle, ordre: index },
-      create: {
-        ownerId: utilisateur.id,
-        code: corps.code,
-        libelle: corps.libelle,
-        ordre: index,
-      },
-    })
+  // La nomenclature est un point de départ, pas une vérité à réimposer. Le §4
+  // la veut éditable, réordonnable et masquable : une fois qu'elle existe, elle
+  // appartient à l'économiste. Relancer le jeu initial ne doit donc jamais
+  // réécrire un libellé renommé ni un ordre remanié.
+  const dejaEnPlace = await prisma.corpsEtat.count({ where: { ownerId: utilisateur.id } })
+  if (dejaEnPlace > 0) {
+    console.log(
+      `Nomenclature déjà en place (${dejaEnPlace} corps d'état pour ${email}) : rien n'est touché.`,
+    )
+    return
   }
 
-  const total = await prisma.corpsEtat.count({ where: { ownerId: utilisateur.id } })
-  console.log(`Nomenclature TCE en place : ${total} corps d'état pour ${email}.`)
+  await prisma.corpsEtat.createMany({
+    data: NOMENCLATURE_TCE.map((corps, index) => ({
+      ownerId: utilisateur.id,
+      code: corps.code,
+      libelle: corps.libelle,
+      ordre: index,
+    })),
+  })
+
+  console.log(`Nomenclature TCE en place : ${NOMENCLATURE_TCE.length} corps d'état pour ${email}.`)
 }
 
 main()
