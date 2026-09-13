@@ -24,12 +24,20 @@ import type { ChiffrageDTO, LotDTO, PosteDTO } from '../../application/dto'
  * blanc : sur une pièce contractuelle, un trou doit se voir.
  */
 
-export type PieceEcrite = 'CCTP' | 'CCAP' | 'CCTG'
+export type PieceEcrite = 'CCTP' | 'CCAP' | 'CCTG' | 'HONORAIRES'
 
 const LIBELLES_PIECE: Record<PieceEcrite, string> = {
   CCTP: 'Cahier des clauses techniques particulières',
   CCAP: 'Cahier des clauses administratives particulières',
   CCTG: 'Cahier des clauses techniques générales',
+  HONORAIRES: 'Proposition d’honoraires',
+}
+
+const TITRES_PAGE_DE_GARDE: Record<PieceEcrite, string> = {
+  CCTP: 'CCTP',
+  CCAP: 'CCAP',
+  CCTG: 'CCTG',
+  HONORAIRES: 'Proposition d’honoraires',
 }
 
 const POLICE = 'Calibri'
@@ -79,7 +87,7 @@ function pageDeGarde(chiffrage: ChiffrageDTO, piece: PieceEcrite): Paragraph[] {
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 120 },
-      children: [new TextRun({ text: piece, bold: true, size: 32 })],
+      children: [new TextRun({ text: TITRES_PAGE_DE_GARDE[piece], bold: true, size: 32 })],
     }),
     new Paragraph({
       alignment: AlignmentType.CENTER,
@@ -286,7 +294,7 @@ export async function genererCctp(
 /** CCAP et CCTG : une trame unique, variables déjà résolues par l'appelant. */
 export async function genererPieceSimple(
   chiffrage: ChiffrageDTO,
-  piece: 'CCAP' | 'CCTG',
+  piece: 'CCAP' | 'CCTG' | 'HONORAIRES',
   contenu: string,
 ): Promise<Buffer> {
   const corps: Paragraph[] = [

@@ -38,6 +38,10 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
   })
 
   const surface = mission.surfaceShon ?? mission.surfaceUtile
+  const trameHonoraires = await db.trame.findFirst({
+    where: { type: 'HONORAIRES' },
+    select: { id: true, intitule: true },
+  })
 
   return (
     <main className="contenu">
@@ -136,6 +140,40 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="carte" style={{ marginBottom: 22 }}>
+        <div className="carte-entete">
+          <h2>Proposition d’honoraires</h2>
+          <span className="attenue" style={{ fontSize: 13 }}>
+            Produite depuis votre modèle, variables de mission résolues.
+          </span>
+        </div>
+        <div className="carte-corps" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          {trameHonoraires ? (
+            <>
+              <p style={{ margin: 0, flex: 1, minWidth: 300, fontSize: 14 }}>
+                Modèle utilisé : <strong>{trameHonoraires.intitule}</strong>.
+                {mission.honorairesMissionHt
+                  ? ''
+                  : ' Les honoraires ne sont pas renseignés sur cette mission : la variable restera visible dans le document.'}
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a href={`/missions/${mission.id}/piece?piece=HONORAIRES&format=docx`} className="bouton" download>
+                  Word
+                </a>
+                <a href={`/missions/${mission.id}/piece?piece=HONORAIRES&format=pdf`} className="bouton" download>
+                  PDF
+                </a>
+              </div>
+            </>
+          ) : (
+            <p style={{ margin: 0, fontSize: 14 }}>
+              Aucun modèle d’honoraires. <Link href="/trames">Créez-en un</Link> dans la
+              bibliothèque de trames : il servira pour toutes vos opérations.
+            </p>
+          )}
         </div>
       </section>
 

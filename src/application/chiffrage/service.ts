@@ -4,6 +4,18 @@ import type { Money as MoneyValue } from '../../domain/money/money'
 import * as PU from '../../domain/money/prix-unitaire'
 import { calculerOuvrage, recapituler } from '../../domain/chiffrage/calcul'
 import type { ChiffrageDTO, LotDTO, PosteDTO, MissionDTO, RecapitulatifDTO, ModificationPoste } from '../dto'
+import { difference, journaliserPlusieurs, type EntreeAudit } from '../audit/service'
+
+/** Champs saisis d'un poste : ce sont eux, et eux seuls, que le journal suit. */
+const CHAMPS_SUIVIS = {
+  code: true,
+  designation: true,
+  unite: true,
+  quantite: true,
+  prixUnitaireHtBase: true,
+  coefficientApplique: true,
+  sourcePrix: true,
+} as const
 
 /** Prisma renvoie ses propres décimaux : on les traverse toujours en chaîne. */
 function texte(valeur: { toString(): string } | null | undefined): string | null {
@@ -337,6 +349,11 @@ export async function enregistrerModifications(
       throw new Error(`Postes hors de la mission : ${refuses.join(', ')}`)
     }
 
+    const avant = await client.poste.findMany({
+      where: { id: { in: identifiants } },
+      select: { id: true, ...CHAMPS_SUIVIS },
+    })
+
     await client.$transaction(
       modifications.map((m) => {
         const donnees: Prisma.PosteUpdateInput = {}
@@ -354,6 +371,34 @@ export async function enregistrerModifications(
         return client.poste.update({ where: { id: m.id }, data: donnees })
       }),
     )
+
+    // Le journal compare l'état réel avant et après, plutôt que ce qui a été
+    // demandé : une valeur rejetée à la conversion ne doit pas y figurer.
+    const apres = await client.poste.findMany({
+      where: { id: { in: identifiants } },
+      select: { id: true, ...CHAMPS_SUIVIS },
+    })
+    const parId = new Map(avant.map((poste) => [poste.id, poste]))
+
+    const entrees: EntreeAudit[] = []
+    for (const poste of apres) {
+      const precedent = parId.get(poste.id)
+      if (!precedent) continue
+      const ecart = difference(
+        precedent as unknown as Record<string, unknown>,
+        poste as unknown as Record<string, unknown>,
+      )
+      if (ecart) {
+        entrees.push({
+          entite: 'Poste',
+          entiteId: poste.id,
+          action: 'MODIFICATION',
+          avant: ecart.avant,
+          apres: ecart.apres,
+        })
+      }
+    }
+    await journaliserPlusieurs(client, entrees)
   }
 
   await recalculerMission(client, missionId)

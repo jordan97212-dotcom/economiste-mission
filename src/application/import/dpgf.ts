@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client'
 import { MissionIntrouvable, chargerChiffrage, recalculerMission } from '../chiffrage/service'
+import { journaliser } from '../audit/service'
 import { analyserDpgf, type MappageDpgf, type OptionsAnalyse, type AnomalieDpgf } from './analyse-dpgf'
 import type { ChiffrageDTO } from '../dto'
 
@@ -105,6 +106,20 @@ export async function importerDpgf(
   })
 
   await recalculerMission(client, missionId)
+
+  // Une entrée de synthèse : mille lignes identiques n'apprendraient rien et
+  // rendraient le journal illisible le jour où il sert vraiment.
+  await journaliser(client, {
+    entite: 'Import',
+    entiteId: lotId,
+    action: 'CREATION',
+    apres: {
+      lotId,
+      ouvragesImportes: apercu.nbOuvrages,
+      sousLotsImportes: apercu.nbSousLots,
+      contenuRemplace: options.remplacer === true,
+    },
+  })
 
   return {
     chiffrage: await chargerChiffrage(client, missionId),

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { analyserTexte } from '../domain/texte/structure'
 import { actionEnregistrerTexte, actionAppliquerTrame } from '../app/missions/actions-dce'
 
@@ -122,6 +122,33 @@ export function EditeurTextes({
     },
     [courant, missionId],
   )
+
+
+  /**
+   * Les modifications partent après un court délai. Quitter la page juste après
+   * une frappe les perdrait en silence : on prévient, et on tente un dernier
+   * envoi au passage en arrière-plan.
+   */
+  useEffect(() => {
+    const avertir = (evenement: BeforeUnloadEvent): void => {
+      if (enAttente.current !== null) {
+        evenement.preventDefault()
+        evenement.returnValue = ''
+      }
+    }
+    const surMasquage = (): void => {
+      if (document.visibilityState === 'hidden') {
+        if (minuteur.current) clearTimeout(minuteur.current)
+        void envoyer()
+      }
+    }
+    window.addEventListener('beforeunload', avertir)
+    document.addEventListener('visibilitychange', surMasquage)
+    return () => {
+      window.removeEventListener('beforeunload', avertir)
+      document.removeEventListener('visibilitychange', surMasquage)
+    }
+  }, [envoyer])
 
   const contenuCourant = selection ? (contenus[selection] ?? '') : ''
   const blocs = useMemo(() => analyserTexte(contenuCourant), [contenuCourant])

@@ -14,6 +14,7 @@ import {
   type SyntheseCoherence,
 } from '../../domain/coherence/verification'
 import { chargerChiffrage, MissionIntrouvable } from '../chiffrage/service'
+import { journaliser } from '../audit/service'
 import type { ChiffrageDTO } from '../dto'
 
 /**
@@ -24,7 +25,7 @@ import type { ChiffrageDTO } from '../dto'
  * contrôle de cohérence, lui, vit dans le domaine et tourne sans base.
  */
 
-export type PieceEcrite = 'CCTP' | 'CCAP' | 'CCTG'
+export type PieceEcrite = 'CCTP' | 'CCAP' | 'CCTG' | 'HONORAIRES'
 
 export interface TexteOuvrage {
   readonly contenu: string
@@ -81,6 +82,15 @@ export async function enregistrerTexte(
         ? Prisma.DbNull
         : (creerTexte(contenu, poste.designation) as unknown as Prisma.InputJsonValue),
     },
+  })
+
+  // Le CCTP est contractuel : on trace la longueur du texte et l'ouvrage
+  // concerné, sans recopier le contenu dans le journal.
+  await journaliser(client, {
+    entite: 'TexteCctp',
+    entiteId: posteId,
+    action: estVide(contenu) ? 'SUPPRESSION' : 'MODIFICATION',
+    apres: { designation: poste.designation, longueur: contenu.trim().length },
   })
 }
 
@@ -165,6 +175,8 @@ export async function verifierMission(
 export function variablesMission(chiffrage: ChiffrageDTO): Record<string, string | null> {
   const mission = chiffrage.mission
   const total = Money.depuisCentimes(chiffrage.recapitulatif.totalTceHt)
+  const honoraires =
+    mission.honorairesMissionHt === null ? null : Money.depuisCentimes(mission.honorairesMissionHt)
 
   return {
     nom_operation: mission.nomOperation,
@@ -183,7 +195,43 @@ export function variablesMission(chiffrage: ChiffrageDTO): Record<string, string
       year: 'numeric',
     }),
     phases: mission.phasesContractuelles.join(', ') || null,
+    honoraires_ht: honoraires === null ? null : Money.formater(honoraires),
+    mode_facturation: LIBELLES_FACTURATION[mission.modeFacturation ?? ''] ?? null,
+    taux_honoraires:
+      honoraires === null || Money.estZero(total)
+        ? null
+        : `${Money.versEuros(honoraires).div(Money.versEuros(total)).mul(100).toDecimalPlaces(2).toString().replace('.', ',')} %`,
+    date_debut: formaterDateFr(mission.dateDebut),
+    date_fin_prevue: formaterDateFr(mission.dateFinPrevue),
+    duree_mois: dureeEnMois(mission.dateDebut, mission.dateFinPrevue),
   }
+}
+
+const LIBELLES_FACTURATION: Record<string, string> = {
+  FORFAIT: 'forfait',
+  TJM: 'taux journalier',
+  POURCENTAGE_TRAVAUX: 'pourcentage du montant des travaux',
+}
+
+function formaterDateFr(iso: string | null): string | null {
+  if (!iso) return null
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
+function dureeEnMois(debut: string | null, fin: string | null): string | null {
+  if (!debut || !fin) return null
+  const depart = new Date(debut)
+  const arrivee = new Date(fin)
+  if (Number.isNaN(depart.getTime()) || Number.isNaN(arrivee.getTime())) return null
+  const mois = Math.max(
+    1,
+    Math.round((arrivee.getTime() - depart.getTime()) / (1000 * 60 * 60 * 24 * 30.44)),
+  )
+  return `${mois} mois`
 }
 
 export const VARIABLES_DISPONIBLES = [
@@ -199,6 +247,12 @@ export const VARIABLES_DISPONIBLES = [
   'taux_tva',
   'date_du_jour',
   'phases',
+  'honoraires_ht',
+  'taux_honoraires',
+  'mode_facturation',
+  'date_debut',
+  'date_fin_prevue',
+  'duree_mois',
 ] as const
 
 // ---------------------------------------------------------------------------

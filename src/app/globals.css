@@ -22,8 +22,9 @@
   --color-alerte-clair: #f6eddc;
   --color-danger: #9b2c2c;
 
-  --font-corps: 'Public Sans', 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  /* Les variables --police-* sont posées par next/font depuis le layout. */
+  --font-corps: var(--police-corps), 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: var(--police-mono), ui-monospace, Menlo, monospace;
 }
 
 html {

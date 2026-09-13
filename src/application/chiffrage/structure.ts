@@ -1,5 +1,6 @@
 import { Prisma, type PrismaClient } from '@prisma/client'
 import { MissionIntrouvable, recalculerMission } from './service'
+import { difference, journaliser } from '../audit/service'
 
 export class PosteIntrouvable extends Error {
   constructor(id: string) {
@@ -54,6 +55,12 @@ export async function creerLot(
     },
     select: { id: true },
   })
+  await journaliser(client, {
+    entite: 'Lot',
+    entiteId: lot.id,
+    action: 'CREATION',
+    apres: { numero: entree.numero, intitule: entree.intitule, coefficientLocal: entree.coefficientLocal ?? null },
+  })
   return lot.id
 }
 
@@ -71,14 +78,56 @@ export async function modifierLot(
   if (entree.corpsEtatId !== undefined) {
     donnees.corpsEtat = entree.corpsEtatId ? { connect: { id: entree.corpsEtatId } } : { disconnect: true }
   }
-  await client.lot.update({ where: { id: lotId }, data: donnees })
+  const avant = await client.lot.findUnique({
+    where: { id: lotId },
+    select: { numero: true, intitule: true, coefficientLocal: true, corpsEtatId: true },
+  })
+  const apres = await client.lot.update({
+    where: { id: lotId },
+    data: donnees,
+    select: { numero: true, intitule: true, coefficientLocal: true, corpsEtatId: true },
+  })
+
+  const ecart = avant
+    ? difference(
+        avant as unknown as Record<string, unknown>,
+        apres as unknown as Record<string, unknown>,
+      )
+    : null
+  if (ecart) {
+    await journaliser(client, {
+      entite: 'Lot',
+      entiteId: lotId,
+      action: 'MODIFICATION',
+      avant: ecart.avant,
+      apres: ecart.apres,
+    })
+  }
+
   // Le coefficient du lot pilote toutes ses lignes.
   await recalculerMission(client, missionId)
 }
 
 export async function supprimerLot(client: PrismaClient, missionId: string, lotId: string): Promise<void> {
   await verifierLot(client, missionId, lotId)
+  const lot = await client.lot.findUnique({
+    where: { id: lotId },
+    select: { numero: true, intitule: true, montantEstimeHt: true, _count: { select: { postes: true } } },
+  })
   await client.lot.delete({ where: { id: lotId } })
+  await journaliser(client, {
+    entite: 'Lot',
+    entiteId: lotId,
+    action: 'SUPPRESSION',
+    avant: lot
+      ? {
+          numero: lot.numero,
+          intitule: lot.intitule,
+          montantSupprimeHt: lot.montantEstimeHt,
+          postesSupprimes: lot._count.postes,
+        }
+      : null,
+  })
   await recalculerMission(client, missionId)
 }
 
@@ -163,8 +212,21 @@ export async function supprimerPoste(
   })
   if (!poste) throw new PosteIntrouvable(posteId)
 
+  const detail = await client.poste.findUnique({
+    where: { id: posteId },
+    select: { code: true, designation: true, montantHt: true },
+  })
+
   // La cascade du schéma emporte la descendance.
   await client.poste.delete({ where: { id: posteId } })
+  await journaliser(client, {
+    entite: 'Poste',
+    entiteId: posteId,
+    action: 'SUPPRESSION',
+    avant: detail
+      ? { code: detail.code, designation: detail.designation, montantSupprimeHt: detail.montantHt }
+      : null,
+  })
   await renumeroter(client, poste.lotId, poste.parentId)
   await recalculerMission(client, missionId)
 }

@@ -1,5 +1,25 @@
 import { Prisma, type PrismaClient } from '@prisma/client'
 import { MissionIntrouvable, recalculerMission } from '../chiffrage/service'
+import { difference, journaliser } from '../audit/service'
+
+/** Champs de mission dont une modification engage un chiffrage. */
+const CHAMPS_MISSION_SUIVIS = {
+  reference: true,
+  nomOperation: true,
+  maitreOuvrage: true,
+  typeOuvrage: true,
+  nature: true,
+  typeMarche: true,
+  surfaceShon: true,
+  surfaceUtile: true,
+  budgetPrevisionnelHt: true,
+  statut: true,
+  honorairesMissionHt: true,
+  modeFacturation: true,
+  coefficientLocalDefaut: true,
+  precisionPu: true,
+  tauxTva: true,
+} as const
 
 export interface EntreeMission {
   reference?: string
@@ -116,6 +136,12 @@ export async function creerMission(client: PrismaClient, entree: EntreeMission):
     data: { ...donneesCommunes(entree), reference } as Prisma.MissionCreateInput,
     select: { id: true },
   })
+  await journaliser(client, {
+    entite: 'Mission',
+    entiteId: mission.id,
+    action: 'CREATION',
+    apres: { reference, nomOperation: entree.nomOperation },
+  })
   return mission.id
 }
 
@@ -124,13 +150,34 @@ export async function modifierMission(
   id: string,
   entree: EntreeMission,
 ): Promise<void> {
-  const existante = await client.mission.findUnique({ where: { id }, select: { id: true } })
-  if (!existante) throw new MissionIntrouvable(id)
+  const avant = await client.mission.findUnique({
+    where: { id },
+    select: { id: true, ...CHAMPS_MISSION_SUIVIS },
+  })
+  if (!avant) throw new MissionIntrouvable(id)
 
   const donnees = donneesCommunes(entree)
   if (entree.reference?.trim()) donnees.reference = entree.reference.trim()
 
-  await client.mission.update({ where: { id }, data: donnees as Prisma.MissionUpdateInput })
+  const apres = await client.mission.update({
+    where: { id },
+    data: donnees as Prisma.MissionUpdateInput,
+    select: { id: true, ...CHAMPS_MISSION_SUIVIS },
+  })
+
+  const ecart = difference(
+    avant as unknown as Record<string, unknown>,
+    apres as unknown as Record<string, unknown>,
+  )
+  if (ecart) {
+    await journaliser(client, {
+      entite: 'Mission',
+      entiteId: id,
+      action: 'MODIFICATION',
+      avant: ecart.avant,
+      apres: ecart.apres,
+    })
+  }
 
   // Le coefficient ou la précision ont pu changer : tout le chiffrage en dépend.
   await recalculerMission(client, id)
@@ -239,11 +286,26 @@ export async function dupliquerMission(
   }
 
   await recalculerMission(client, copie.id)
+  await journaliser(client, {
+    entite: 'Mission',
+    entiteId: copie.id,
+    action: 'CREATION',
+    apres: { reference, dupliqueeDepuis: source.reference },
+  })
   return copie.id
 }
 
 export async function supprimerMission(client: PrismaClient, id: string): Promise<void> {
-  const existante = await client.mission.findUnique({ where: { id }, select: { id: true } })
+  const existante = await client.mission.findUnique({
+    where: { id },
+    select: { id: true, reference: true, nomOperation: true },
+  })
   if (!existante) throw new MissionIntrouvable(id)
   await client.mission.delete({ where: { id } })
+  await journaliser(client, {
+    entite: 'Mission',
+    entiteId: id,
+    action: 'SUPPRESSION',
+    avant: { reference: existante.reference, nomOperation: existante.nomOperation },
+  })
 }

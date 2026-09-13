@@ -15,7 +15,7 @@ const TYPES_MIME = {
 } as const
 
 function estPiece(valeur: string | null): valeur is PieceEcrite {
-  return valeur === 'CCTP' || valeur === 'CCAP' || valeur === 'CCTG'
+  return valeur === 'CCTP' || valeur === 'CCAP' || valeur === 'CCTG' || valeur === 'HONORAIRES'
 }
 
 /**

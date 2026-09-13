@@ -18,7 +18,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 5 | Import DPGF Excel | Livré |
 | 6 | Export DPGF Excel | Livré |
 | 7 | DCE : CCTP, CCAP, CCTG, contrôle de cohérence | Livré |
-| 8 | Honoraires, export complet, journal d'audit | À faire |
+| 8 | Honoraires, export complet, journal d'audit | Livré |
 
 La phase 1 de la spécification est couverte : cadrage de mission, chiffrage
 détaillé et rédaction du DCE. On crée ou duplique une mission, on saisit son
@@ -188,6 +188,67 @@ apt-get install -y libreoffice-writer
 Sans lui, l'application reste utilisable : elle détecte l'absence en tentant une
 vraie conversion, masque les boutons PDF et continue de produire le Word.
 
+## Honoraires, journal et sortie des données
+
+### Proposition d'honoraires
+
+La proposition se génère comme les autres pièces écrites, depuis une trame de
+type `HONORAIRES`, avec ses propres variables : `{{honoraires_ht}}`,
+`{{taux_honoraires}}`, `{{mode_facturation}}`, `{{date_debut}}`,
+`{{date_fin_prevue}}`, `{{duree_mois}}`. Le taux n'est pas saisi : il se déduit
+des honoraires et de l'estimatif du moment, et suit donc le chiffrage.
+
+### Journal des modifications
+
+Le journal répond à une question et une seule : qui a modifié quoi, et quand.
+Il enregistre l'intention, jamais le recalcul. Les prix unitaires finaux, les
+montants de ligne et les totaux de lot sont recomputés à chaque écriture ; les
+inscrire reviendrait à noyer la décision sous ses conséquences.
+
+Ce qui laisse une trace :
+
+| Évènement | Trace |
+| --- | --- |
+| Mission créée, modifiée, dupliquée, supprimée | une entrée |
+| Lot créé, modifié, supprimé | une entrée, avec le montant perdu à la suppression |
+| Valeur d'une ligne de DPGF modifiée | une entrée par ligne touchée |
+| Ligne de DPGF supprimée | une entrée |
+| Texte de CCTP enregistré | une entrée |
+| Import d'un DPGF | une seule entrée de synthèse, pas une par ligne |
+
+L'ajout d'une ligne vide ne laisse rien : elle ne porte aucune valeur. Ce qu'on
+y écrit ensuite apparaît au journal comme une valeur venue de « — », donc rien
+ne se perd. La suppression, elle, est toujours tracée : elle peut détruire un
+montant.
+
+### Export complet
+
+Une archive zip, sans format propriétaire, téléchargeable depuis « Mes données » :
+
+```
+missions/<référence-opération>/
+  dpgf.xlsx          le bordereau chiffré
+  mission.json       toutes les données de l'opération
+  cctp/<lot>/*.txt   un fichier texte par ouvrage décrit
+base-prix/           la base personnelle, en Excel et en JSON
+trames/              les trames en texte brut, plus leur JSON
+referentiels/        corps d'état et entreprises
+journal-audit.json   l'historique des modifications
+LISEZ-MOI.txt        ce que contient l'archive et comment lire les montants
+```
+
+Les montants des fichiers JSON restent en entiers — centimes pour les montants,
+dix-millièmes d'euro pour les prix unitaires — afin qu'aucun arrondi ne se perde
+à la relecture.
+
+### Rien ne part vers un tiers
+
+Les polices sont téléchargées à la construction et servies par l'application
+elle-même. Aucune page n'appelle un service extérieur à l'affichage : une
+application qui porte des noms de clients et des montants n'a pas à signaler
+chaque consultation au dehors, et elle reste lisible sur un serveur sans accès
+sortant.
+
 ## Organisation du code
 
 ```
@@ -207,6 +268,8 @@ src/
     import/          analyse d'un DPGF, sans entrée-sortie
     dce/             textes, cohérence, assemblage des pièces
     trames/          bibliothèque de textes réutilisables
+    audit/           journal des modifications et sa mise en forme
+    export/          archive complète des données du compte
     saisie.ts        lecture des nombres et unités d'un tableur français
   infrastructure/  Prisma cloisonné par propriétaire, authentification argon2id
     sources-prix/    implémentation du port SourcePrix
