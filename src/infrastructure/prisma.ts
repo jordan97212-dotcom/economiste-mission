@@ -29,6 +29,7 @@ const MODELES_CLOISONNES = new Set([
   'ModeleHonoraires',
   'PieceJointe',
   'JournalAudit',
+  'ReferenceNormative',
 ])
 // `Session` n'y figure pas : elle porte `userId` et non `ownerId`, et elle est
 // lue avant qu'on sache qui est connecté.

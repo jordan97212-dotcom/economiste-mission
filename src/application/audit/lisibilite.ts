@@ -14,6 +14,7 @@ export const LIBELLES_ENTITE: Record<string, string> = {
   Avenant: 'Avenant',
   TexteCctp: 'Texte de CCTP',
   Import: 'Import de DPGF',
+  Norme: 'Norme ou DTU',
 }
 
 export const LIBELLES_ACTION: Record<string, string> = {
@@ -48,6 +49,8 @@ export const LIBELLES_CHAMP: Record<string, string> = {
   dupliqueeDepuis: 'dupliquée depuis',
   intitule: 'intitulé',
   numero: 'numéro',
+  remplaceePar: 'remplacée par',
+  referencesVersees: 'références versées au référentiel',
 }
 
 /**

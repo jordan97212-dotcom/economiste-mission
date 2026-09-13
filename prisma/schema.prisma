@@ -122,6 +122,14 @@ enum TypeTrame {
   HONORAIRES
 }
 
+/// Statut d'une référence normative au référentiel de l'économiste.
+enum StatutNorme {
+  EN_VIGUEUR
+  ANNULEE
+  REMPLACEE
+  PROJET
+}
+
 enum ActionAudit {
   CREATION
   MODIFICATION
@@ -147,6 +155,7 @@ model User {
   entreprises       Entreprise[]
   corpsEtats        CorpsEtat[]
   trames            Trame[]
+  normes            ReferenceNormative[]
   modelesHonoraires ModeleHonoraires[]
   piecesJointes     PieceJointe[]
   journalAudit      JournalAudit[]
@@ -184,6 +193,7 @@ model CorpsEtat {
   lots           Lot[]
   prixReferences PrixReference[]
   trames         Trame[]
+  normes         ReferenceNormative[]
 
   @@unique([ownerId, code])
   @@index([ownerId, ordre])
@@ -557,6 +567,45 @@ model Trame {
 
   @@index([ownerId, type, corpsEtatId])
   @@map("trame_cctp")
+}
+
+/// Référentiel des normes et DTU cités par les pièces écrites.
+///
+/// L'application ne détient aucune norme : leur contenu appartient à l'AFNOR et
+/// au CSTB. Elle tient la liste des références que l'économiste cite, avec leur
+/// statut et la date à laquelle il l'a vérifié, pour qu'un DTU annulé ne parte
+/// pas dans un CCTP contractuel sans que personne ne le voie.
+model ReferenceNormative {
+  id      String @id @default(cuid())
+  ownerId String @map("owner_id")
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  /// Écriture canonique, celle produite par src/domain/normes/citation.ts.
+  reference String
+  titre     String?
+  statut    StatutNorme @default(EN_VIGUEUR)
+
+  /// Édition ou publication de la norme, quand elle est connue.
+  dateEdition DateTime? @map("date_edition") @db.Date
+  /// Date à laquelle le statut a été constaté, et auprès de quoi.
+  dateVerification DateTime? @map("date_verification") @db.Date
+  source           String?
+
+  /// Pour une norme remplacée : la référence qui prend sa suite.
+  remplaceePar String? @map("remplacee_par")
+
+  /// Notes de l'économiste : pourquoi il garde celle-ci, ce qu'il a vérifié.
+  commentaire String?
+
+  corpsEtatId String?    @map("corps_etat_id")
+  corpsEtat   CorpsEtat? @relation(fields: [corpsEtatId], references: [id], onDelete: SetNull)
+
+  creeLe    DateTime @default(now()) @map("cree_le")
+  modifieLe DateTime @updatedAt @map("modifie_le")
+
+  @@unique([ownerId, reference])
+  @@index([ownerId, statut])
+  @@map("reference_normative")
 }
 
 model ModeleHonoraires {

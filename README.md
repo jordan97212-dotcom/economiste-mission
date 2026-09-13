@@ -19,6 +19,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 6 | Export DPGF Excel | Livré |
 | 7 | DCE : CCTP, CCAP, CCTG, contrôle de cohérence | Livré |
 | 8 | Honoraires, export complet, journal d'audit | Livré |
+| 9 | Référentiel des normes et DTU, contrôle des citations | Livré |
 
 La phase 1 de la spécification est couverte : cadrage de mission, chiffrage
 détaillé et rédaction du DCE. On crée ou duplique une mission, on saisit son
@@ -266,6 +267,58 @@ application qui porte des noms de clients et des montants n'a pas à signaler
 chaque consultation au dehors, et elle reste lisible sur un serveur sans accès
 sortant.
 
+## Normes et DTU
+
+### Ce que l'application ne fait pas, et pourquoi
+
+Elle ne télécharge aucune norme. Ce n'est pas une limite technique :
+
+- l'AFNOR n'expose aucune API publique de son catalogue ;
+- les mentions légales de Norm'Info protègent la base par le droit d'auteur et
+  par le droit *sui generis* des bases de données, et interdisent l'extraction
+  répétée et systématique sans accord écrit ;
+- le contenu des DTU est vendu par l'AFNOR et le CSTB, il n'est ni récupérable
+  ni redistribuable.
+
+Un aspirateur de normes exposerait l'économiste, pas l'application.
+
+### Ce qu'elle fait à la place
+
+Le risque réel n'est pas de manquer une norme parue, c'est d'en citer une qui
+n'existe plus dans une pièce contractuelle signée. L'application traite
+celui-là :
+
+| Elle sait | Comment |
+| --- | --- |
+| Quelles normes vos textes citent | Détection dans le texte : `NF DTU 20.1`, `DTU 20-1`, `NF EN 206/CN`, `NF P 18-201`, `Eurocode 2`, écritures mélangées comprises |
+| Lesquelles ne sont plus en vigueur | Confrontation au référentiel que vous tenez |
+| Depuis quand vous ne l'avez pas vérifié | Chaque statut porte sa date ; au-delà de 18 mois il est signalé |
+| Par quoi commencer | Le relevé part de vos propres CCTP : sept ans de textes contiennent déjà la liste qui compte |
+
+Un DTU **annulé** cité dans un texte est une anomalie **bloquante** : le CCTP ne
+se génère pas, comme pour un ouvrage sans texte. Une norme **remplacée**, **à
+l'état de projet**, **non référencée** ou **au statut trop ancien** avertit sans
+bloquer. Le forçage reste possible : c'est la décision de l'économiste.
+
+Les références relevées automatiquement arrivent **sans statut vérifié** et
+ressortent au contrôle tant qu'elles ne sont pas confirmées. L'application ne
+présume jamais qu'une norme est en vigueur.
+
+### Ce qu'elle ne fera jamais
+
+Réécrire un texte de CCTP. Remplacer `NF DTU 20.1` par une autre référence
+change ce que le marché prescrit : c'est une décision technique, et
+l'économiste engage sa responsabilité professionnelle.
+
+### Si une source officielle s'ouvre un jour
+
+Le port `SourceNormes` existe déjà, sur le même patron que `SourcePrix`. Un
+abonnement AFNOR avec licence de réutilisation, ou un jeu de données publiques,
+se branche dans `src/infrastructure/sources-normes/` sans toucher au métier.
+L'implémentation actuelle, `ReleveManuel`, rend ce qu'on lui donne et annonce
+`automatique: false` — pour que l'interface ne promette pas ce qu'elle ne peut
+pas tenir.
+
 ## Organisation du code
 
 ```
@@ -277,6 +330,7 @@ src/
     offres/          écarts vis-à-vis de l'estimatif, offres à vérifier
     texte/           format des pièces écrites, variables de mission
     coherence/       contrôle DPGF vers CCTP avant export
+    normes/          détection des normes citées, contrôle de leur statut
   application/     cas d'usage et ports
     ports/           SourcePrix, en attendant une éventuelle base tierce
     missions/        création, modification, duplication
@@ -286,10 +340,12 @@ src/
     dce/             textes, cohérence, assemblage des pièces
     trames/          bibliothèque de textes réutilisables
     audit/           journal des modifications et sa mise en forme
+    normes/          référentiel des normes et DTU
     export/          archive complète des données du compte
     saisie.ts        lecture des nombres et unités d'un tableur français
   infrastructure/  Prisma cloisonné par propriétaire, authentification argon2id
     sources-prix/    implémentation du port SourcePrix
+    sources-normes/  implémentation du port SourceNormes
     excel/           lecture de classeurs, génération du DPGF
     docx/            pièces écrites et conversion PDF
   app/             Next.js : pages, actions serveur

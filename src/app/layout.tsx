@@ -48,6 +48,7 @@ export default async function RacineLayout({ children }: { children: React.React
                 <Link href="/missions/nouvelle">Nouvelle mission</Link>
                 <Link href="/base-prix">Base de prix</Link>
                 <Link href="/trames">Trames</Link>
+                <Link href="/normes">Normes</Link>
                 <Link href="/mes-donnees">Mes données</Link>
               </nav>
               <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>

@@ -27,6 +27,12 @@ export type CodeAnomalie =
   | 'unite_absente'
   | 'lot_vide'
   | 'mission_sans_lot'
+  // Normes citées dans les textes — voir src/domain/normes/verification.ts.
+  | 'norme_annulee'
+  | 'norme_remplacee'
+  | 'norme_projet'
+  | 'norme_inconnue'
+  | 'statut_ancien'
 
 export interface AnomalieCoherence {
   readonly code: CodeAnomalie

@@ -20,6 +20,11 @@ const LIBELLES_ANOMALIE: Record<string, string> = {
   unite_absente: 'Unité absente',
   lot_vide: 'Lot vide',
   mission_sans_lot: 'Aucun lot',
+  norme_annulee: 'Norme annulée',
+  norme_remplacee: 'Norme remplacée',
+  norme_projet: 'Norme à l’état de projet',
+  norme_inconnue: 'Norme non référencée',
+  statut_ancien: 'Statut à revérifier',
 }
 
 export default async function PageDce({ params }: { params: Promise<{ id: string }> }) {

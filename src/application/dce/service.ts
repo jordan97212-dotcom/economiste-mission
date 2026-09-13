@@ -10,9 +10,11 @@ import {
 import {
   synthetiser,
   verifierCoherence,
+  type AnomalieCoherence,
   type LotVerif,
   type SyntheseCoherence,
 } from '../../domain/coherence/verification'
+import { controlerMission } from '../normes/service'
 import { chargerChiffrage, MissionIntrouvable } from '../chiffrage/service'
 import { journaliser } from '../audit/service'
 import type { ChiffrageDTO } from '../dto'
@@ -164,7 +166,33 @@ export async function verifierMission(
     }),
   }))
 
-  return synthetiser(verifierCoherence(pourVerification))
+  // Les normes citées dans les textes sont contrôlées dans la même passe : pour
+  // l'économiste, un DTU annulé et un ouvrage sans texte sont deux défauts du
+  // même dossier, pas deux écrans séparés.
+  const anomaliesNormes = await controlerNormesDeMission(client, missionId)
+
+  return synthetiser([...verifierCoherence(pourVerification), ...anomaliesNormes])
+}
+
+/**
+ * Contrôle des normes, ramené au vocabulaire du contrôle de cohérence.
+ * Le référentiel vide ne bloque rien : il produit des avertissements, le temps
+ * que l'économiste le constitue.
+ */
+async function controlerNormesDeMission(
+  client: PrismaClient,
+  missionId: string,
+): Promise<AnomalieCoherence[]> {
+  const { anomalies } = await controlerMission(client, missionId)
+
+  return anomalies.map((anomalie) => ({
+    code: anomalie.code,
+    severite: anomalie.severite,
+    message: anomalie.message,
+    lotId: null,
+    posteId: anomalie.posteId,
+    repere: anomalie.repere,
+  }))
 }
 
 // ---------------------------------------------------------------------------

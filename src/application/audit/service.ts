@@ -20,7 +20,14 @@ import { Prisma, type PrismaClient } from '@prisma/client'
 
 export type ActionAudit = 'CREATION' | 'MODIFICATION' | 'SUPPRESSION'
 
-export type EntiteAuditee = 'Mission' | 'Lot' | 'Poste' | 'Avenant' | 'TexteCctp' | 'Import'
+export type EntiteAuditee =
+  | 'Mission'
+  | 'Lot'
+  | 'Poste'
+  | 'Avenant'
+  | 'TexteCctp'
+  | 'Import'
+  | 'Norme'
 
 export interface EntreeAudit {
   readonly entite: EntiteAuditee

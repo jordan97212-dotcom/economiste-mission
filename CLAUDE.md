@@ -28,6 +28,13 @@ points tranchés.
    coefficient d'ajustement restent internes : les exports ne portent que le prix
    unitaire final.
 
+9. **Aucune norme ne s'aspire.** Le contenu des DTU est vendu par l'AFNOR et le
+   CSTB ; le catalogue Norm'Info est protégé par le droit d'auteur et par le
+   droit *sui generis* des bases de données, et son extraction systématique est
+   interdite sans accord écrit. L'application tient le référentiel que
+   l'économiste entretient et signale ce qui doit être revu ; elle ne télécharge
+   rien et ne réécrit jamais un texte de CCTP à sa place.
+
 ## Avant de proposer un changement
 
 Signaler les ambiguïtés de la spécification plutôt que de trancher en silence.
