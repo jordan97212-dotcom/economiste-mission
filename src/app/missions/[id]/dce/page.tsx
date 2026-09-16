@@ -78,7 +78,13 @@ export default async function PageDce({ params }: { params: Promise<{ id: string
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <Link href={`/missions/${mission.id}/dce/textes`} className="bouton bouton-primaire">
+          <Link
+            href={`/missions/${mission.id}/dce/generation`}
+            className="bouton bouton-primaire"
+          >
+            Générer depuis mes trames
+          </Link>
+          <Link href={`/missions/${mission.id}/dce/textes`} className="bouton">
             Rédiger les textes
           </Link>
           <Link href="/trames" className="bouton">

@@ -456,6 +456,15 @@ textarea:focus {
   font-size: 14px;
 }
 
+.message-succes {
+  background: var(--color-accent-clair);
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent-encre);
+  padding: 10px 14px;
+  border-radius: 3px;
+  font-size: 14px;
+}
+
 .message-avertissement {
   background: var(--color-alerte-clair);
   border: 1px solid var(--color-alerte);

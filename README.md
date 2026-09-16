@@ -24,6 +24,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 11 | Attribution, avenants, situations de travaux, suivi financier (phase 3) | Livré |
 | 12 | Clôture : décompte général, réinjection des prix réels, archivage | Livré |
 | 13 | Import de CCTP Word dans la bibliothèque de trames | Livré |
+| 14 | Génération du CCTP depuis le DPGF, par appariement des trames | Livré |
 
 Les trois phases de la spécification sont couvertes, du cadrage à la clôture.
 On crée ou duplique une mission, on saisit son chiffrage au clavier ou par
@@ -347,6 +348,45 @@ import de trente articles qu'on n'a pas relus ne vaut rien.
 Quand aucun titre n'est reconnu, le document n'est pas perdu : il part en une
 seule trame, à découper à la main, et l'écran explique pourquoi.
 
+## Générer le CCTP depuis le DPGF
+
+Rédiger un CCTP revient, pour l'essentiel, à retrouver pour chaque ligne du
+bordereau le texte qu'on a déjà écrit ailleurs. L'application fait ce
+rapprochement lot par lot et propose d'appliquer les trames correspondantes.
+
+### Comment le rapprochement se fait
+
+Les trames retenues pour un lot sont celles de son corps d'état, plus les
+généralités qui n'en portent aucun. Une trame de peinture n'est donc jamais
+proposée dans un lot de gros œuvre.
+
+La ressemblance se mesure sur les mots significatifs des deux désignations —
+accents et pluriels neutralisés, mots trop fréquents écartés. Sans cela,
+« fourniture et pose de carrelage » ressemblerait à « fourniture et pose de
+faïence ». Les nombres comptent : « 20 » distingue un voile de 20 d'un voile de
+16.
+
+Une correspondance franche arrive **cochée** ; une correspondance approximative
+est proposée avec son pourcentage et attend un regard. En deçà d'un tiers de
+mots communs, rien n'est proposé : deux désignations de bâtiment partagent
+toujours quelques mots, et une proposition au hasard ferait perdre plus de temps
+qu'elle n'en gagne.
+
+Un ouvrage qui porte déjà un texte est laissé tel quel. La génération complète
+le CCTP, elle ne le réécrit pas.
+
+### Ce qu'elle ne fait pas, et pourquoi
+
+Un ouvrage dont aucune trame ne s'approche **ressort comme étant à rédiger**.
+L'application n'écrit pas de prescription à sa place.
+
+Ce n'est pas une limite technique. Un CCTP est une pièce contractuelle que
+l'économiste signe : un texte inventé l'engagerait sur des tolérances, des
+dosages ou des normes que personne n'a vérifiés, et une prescription fausse se
+paie en travaux supplémentaires ou en litige. Le contrôle de cohérence signale
+de toute façon ces ouvrages avant la génération du DCE, donc rien ne part
+incomplet sans que ce soit dit.
+
 ## Normes et DTU
 
 ### Ce que l'application ne fait pas, et pourquoi
@@ -565,7 +605,7 @@ src/
     chiffrage/       cascade des coefficients, calcul de ligne, totaux, ratios
     situations/      avancement, cumuls, tableau financier, décompte de solde
     offres/          écarts vis-à-vis de l'estimatif, anomalies, comparatif
-    texte/           format des pièces écrites, lecture d'un CCTP Word
+    texte/           format des pièces écrites, lecture d'un CCTP Word, appariement
     coherence/       contrôle DPGF vers CCTP avant export
     normes/          détection des normes citées, contrôle de leur statut
     cloture/         décompte général, sélection des prix à réinjecter
@@ -575,7 +615,7 @@ src/
     chiffrage/       recalcul persisté, arborescence, collage et sa correspondance
     prix/            base de prix personnelle, import de classeur
     import/          analyse d'un DPGF, sans entrée-sortie
-    dce/             textes, cohérence, assemblage des pièces
+    dce/             textes, cohérence, génération depuis les trames, assemblage
     trames/          bibliothèque de textes réutilisables
     audit/           journal des modifications et sa mise en forme
     normes/          référentiel des normes et DTU
