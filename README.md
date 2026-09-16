@@ -117,10 +117,40 @@ C'est l'écran où passe l'essentiel du temps de travail.
 - Collage d'un bloc de cellules depuis un tableur, directement dans la grille. Les
   lignes manquantes sont créées, les nombres au format français sont reconnus,
   espaces de milliers et virgule décimale compris.
+- **Le collage demande à quoi correspondent les colonnes** avant d'écrire quoi que
+  ce soit. Voir plus bas : c'est un correctif, pas un confort.
 - Enregistrement automatique par lots, avec un témoin d'état explicite.
 - Totaux recalculés à la frappe, avec les mêmes fonctions de domaine que le
   serveur : l'affichage ne peut pas diverger de ce qui sera persisté.
 - Coefficient hérité affiché en gris clair, coefficient propre à la ligne en noir.
+
+### Ce que le collage demande avant d'écrire
+
+Le collage remplissait les colonnes dans l'ordre fixe de la grille — code,
+désignation, unité, quantité, prix, coefficient — à partir de celle où se
+trouvait le curseur. Un tableur bâti autrement, le prix unitaire avant la
+quantité par exemple, versait donc le prix dans la quantité et la quantité dans
+le prix.
+
+Le défaut n'était pas rattrapable en aval : les deux valeurs sont des nombres
+parfaitement lisibles, donc la règle « une valeur illisible se signale » ne
+s'appliquait pas. Rien ne se signalait, et le montant était faux.
+
+Un collage ouvre désormais une fenêtre qui montre la correspondance proposée et
+les premières lignes telles qu'elles seront collées. La proposition se lit
+d'abord dans un en-tête quand il y en a un, sinon dans le contenu : une colonne
+d'unités, une colonne de texte long, une colonne de codes se reconnaissent sans
+ambiguïté. Départager deux colonnes de nombres, en revanche, n'est jamais tenu
+pour acquis — ces colonnes-là sont marquées « à vérifier », parce que c'est
+précisément là que se trompait l'ancien collage.
+
+Une colonne peut être écartée, et la première ligne ignorée si c'est un en-tête.
+Rien n'est écrit avant confirmation.
+
+Un détail qui a son importance : `02.01` se lit aussi comme le nombre 2,01, et
+tombait alors pile dans la plage d'un coefficient. En français la décimale
+s'écrit avec une virgule, donc un séparateur point désigne un code — c'est la
+règle appliquée, et elle a son test.
 
 ## Base de prix personnelle
 
@@ -496,7 +526,7 @@ src/
   application/     cas d'usage et ports
     ports/           SourcePrix et SourceNormes, en attendant d'éventuelles sources tierces
     missions/        création, modification, duplication
-    chiffrage/       recalcul persisté, arborescence, collage
+    chiffrage/       recalcul persisté, arborescence, collage et sa correspondance
     prix/            base de prix personnelle, import de classeur
     import/          analyse d'un DPGF, sans entrée-sortie
     dce/             textes, cohérence, assemblage des pièces

@@ -80,9 +80,16 @@ export async function actionCollerBloc(
   posteDepartId: string,
   colonneDepart: ColonneCollable,
   lignes: string[][],
+  mappage?: (ColonneCollable | null)[],
 ): Promise<ChiffrageDTO> {
   const { db } = await contexte()
-  const chiffrage = await collerBloc(db, missionId, { lotId, posteDepartId, colonneDepart, lignes })
+  const chiffrage = await collerBloc(db, missionId, {
+    lotId,
+    posteDepartId,
+    colonneDepart,
+    lignes,
+    ...(mappage ? { mappage } : {}),
+  })
   rafraichir(missionId)
   return chiffrage
 }

@@ -23,6 +23,8 @@ import {
   actionCollerBloc,
 } from '../app/missions/actions-chiffrage'
 import type { ColonneCollable } from '../application/chiffrage/coller'
+import { devinerMappageCollage } from '../application/chiffrage/mappage-collage'
+import { ConfirmationCollage, type CollageEnAttente } from './ConfirmationCollage'
 import { AssistancePrix } from './AssistancePrix'
 import {
   actionRechercherPrix,
@@ -59,6 +61,7 @@ export function GrilleChiffrage({ chiffrageInitial }: { chiffrageInitial: Chiffr
   const [ligneActive, setLigneActive] = useState<string | null>(null)
 
   const [assistance, setAssistance] = useState<EtatAssistance | null>(null)
+  const [collageEnAttente, setCollageEnAttente] = useState<CollageEnAttente | null>(null)
 
   const enAttente = useRef(new Map<string, ModificationPoste>())
   const minuteur = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -280,9 +283,31 @@ export function GrilleChiffrage({ chiffrageInitial }: { chiffrageInitial: Chiffr
         .map((ligne) => ligne.split('\t'))
 
       if (lignes.length === 0) return
-      void appelerAction(() => actionCollerBloc(mission.id, lotId, posteId, colonne, lignes))
+
+      // On ne colle plus directement : l'ordre des colonnes du tableur n'est pas
+      // forcément celui de la grille, et se tromper là fausse un montant en
+      // silence. On propose une correspondance, l'économiste la confirme.
+      setCollageEnAttente({
+        lotId,
+        posteId,
+        colonne,
+        lignes,
+        proposition: devinerMappageCollage(lignes, colonne),
+      })
     },
-    [appelerAction, mission.id],
+    [],
+  )
+
+  const confirmerCollage = useCallback(
+    (mappage: (ColonneCollable | null)[], lignes: string[][]): void => {
+      const attente = collageEnAttente
+      if (!attente) return
+      setCollageEnAttente(null)
+      void appelerAction(() =>
+        actionCollerBloc(mission.id, attente.lotId, attente.posteId, attente.colonne, lignes, mappage),
+      )
+    },
+    [appelerAction, collageEnAttente, mission.id],
   )
 
   const enregistrerReference = useCallback((cle: string, element: HTMLElement | null): void => {
@@ -292,6 +317,14 @@ export function GrilleChiffrage({ chiffrageInitial }: { chiffrageInitial: Chiffr
 
   return (
     <>
+      {collageEnAttente ? (
+        <ConfirmationCollage
+          collage={collageEnAttente}
+          onAnnuler={() => setCollageEnAttente(null)}
+          onConfirmer={confirmerCollage}
+        />
+      ) : null}
+
       <div className="barre-outils">
         <span
           className="etat-enregistrement"

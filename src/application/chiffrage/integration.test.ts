@@ -11,7 +11,7 @@ import { PrismaClient } from '@prisma/client'
 import { clientPour } from '../../infrastructure/prisma'
 import { chargerChiffrage, enregistrerModifications, recalculerMission } from './service'
 import { ajouterPoste, creerLot, deplacerPoste, supprimerPoste } from './structure'
-import { collerBloc } from './coller'
+import { collerBloc, devinerMappageCollage } from './coller'
 import { creerMission, dupliquerMission, genererReference } from '../missions/service'
 import * as PU from '../../domain/money/prix-unitaire'
 
@@ -317,6 +317,67 @@ describe('collage d’un bloc de tableur', () => {
 
     expect(postes[2]?.designation).toBe('Semelles filantes')
     expect(postes[2]?.quantite).toBe('88.25')
+  })
+
+  it('colle un tableur dont le prix précède la quantité, sans les intervertir', async () => {
+    // Le défaut d'origine : le collage remplissait les colonnes dans l'ordre de
+    // la grille, donc ce tableur-là versait le prix dans la quantité et la
+    // quantité dans le prix. Les deux valeurs étant lisibles, rien ne se
+    // signalait et le montant était faux.
+    const client = db(ownerA)
+    const missionId = await creerMission(client, { ...MISSION_TYPE, reference: `PI-${SUFFIXE}` })
+    const lotId = await creerLot(client, missionId, { numero: '02', intitule: 'Gros œuvre' })
+    const depart = await ajouterPoste(client, missionId, { lotId, type: 'OUVRAGE' })
+
+    const bloc = [
+      ['02.01', 'Voile béton banché ép. 20 cm', 'm3', '268,40', '47,5'],
+      ['02.02', 'Dalle portée béton armé', 'm2', '92,15', '310'],
+    ]
+
+    const { colonnes } = devinerMappageCollage(bloc, 'code')
+    expect(colonnes.map((c) => c.colonne)).toEqual([
+      'code',
+      'designation',
+      'unite',
+      'prixUnitaireHtBase',
+      'quantite',
+    ])
+
+    const chiffrage = await collerBloc(client, missionId, {
+      lotId,
+      posteDepartId: depart,
+      colonneDepart: 'code',
+      lignes: bloc,
+      mappage: colonnes.map((c) => c.colonne),
+    })
+
+    const postes = chiffrage.lots[0]?.postes ?? []
+    expect(postes[0]?.quantite).toBe('47.5')
+    // 268,40 x 1,25 = 335,50 ; 47,5 x 335,50 = 15 936,25
+    expect(postes[0]?.prixUnitaireHtFinal).toBe('3355000')
+    expect(postes[0]?.montantHt).toBe('1593625')
+  })
+
+  it('n’écrit pas les colonnes que l’économiste a écartées', async () => {
+    const client = db(ownerA)
+    const missionId = await creerMission(client, { ...MISSION_TYPE, reference: `PE-${SUFFIXE}` })
+    const lotId = await creerLot(client, missionId, { numero: '02', intitule: 'Gros œuvre' })
+    const depart = await ajouterPoste(client, missionId, { lotId, type: 'OUVRAGE' })
+
+    // Une colonne du milieu — ici un commentaire — est écartée ; les suivantes
+    // doivent quand même être collées.
+    const chiffrage = await collerBloc(client, missionId, {
+      lotId,
+      posteDepartId: depart,
+      colonneDepart: 'designation',
+      lignes: [['Voile béton banché', 'à revoir avec le BET', 'm3', '47,5']],
+      mappage: ['designation', null, 'unite', 'quantite'],
+    })
+
+    const poste = chiffrage.lots[0]?.postes?.[0]
+    expect(poste?.designation).toBe('Voile béton banché')
+    expect(poste?.unite).toBe('M3')
+    expect(poste?.quantite).toBe('47.5')
   })
 
   it('refuse un collage plus gros que la limite de sécurité', async () => {

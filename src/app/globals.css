@@ -456,6 +456,42 @@ textarea:focus {
   font-size: 14px;
 }
 
+.message-avertissement {
+  background: var(--color-alerte-clair);
+  border: 1px solid var(--color-alerte);
+  color: var(--color-alerte);
+  padding: 10px 14px;
+  border-radius: 3px;
+  font-size: 14px;
+}
+
+/* Voile et modale : utilisés par la confirmation de collage. */
+.voile {
+  position: fixed;
+  inset: 0;
+  background: rgba(19, 33, 29, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.modale {
+  background: var(--color-surface);
+  border: 1px solid var(--color-filet);
+  border-radius: 4px;
+  box-shadow: 0 12px 40px rgba(19, 33, 29, 0.25);
+  width: min(1000px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+  .voile { padding: 0; align-items: flex-start; }
+  .modale { max-height: 100vh; border-radius: 0; border: none; }
+}
+
 .total-bandeau {
   position: sticky;
   bottom: 0;

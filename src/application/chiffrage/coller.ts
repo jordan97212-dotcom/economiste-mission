@@ -8,23 +8,29 @@ import { ajouterPoste } from './structure'
 export { lireNombre, normaliserUnite } from '../saisie'
 import type { ChiffrageDTO, ModificationPoste } from '../dto'
 
-/** Colonnes que l'on peut remplir par collage, dans l'ordre de la grille. */
-export const COLONNES_COLLABLES = [
-  'code',
-  'designation',
-  'unite',
-  'quantite',
-  'prixUnitaireHtBase',
-  'coefficientApplique',
-] as const
+import { mappagePositionnel, type ColonneCollable } from './mappage-collage'
 
-export type ColonneCollable = (typeof COLONNES_COLLABLES)[number]
+export {
+  COLONNES_COLLABLES,
+  LIBELLES_COLONNE,
+  devinerMappageCollage,
+  mappagePositionnel,
+  type ColonneCollable,
+  type MappageCollage,
+  type PropositionColonne,
+} from './mappage-collage'
 
 export interface EntreeCollage {
   readonly lotId: string
   readonly posteDepartId: string
   readonly colonneDepart: ColonneCollable
   readonly lignes: readonly (readonly string[])[]
+  /**
+   * À quoi correspond chaque colonne collée, confirmé par l'économiste. Quand
+   * elle manque, on retombe sur l'ordre de la grille depuis `colonneDepart` —
+   * l'ancien comportement, conservé pour ne pas casser les appels existants.
+   */
+  readonly mappage?: readonly (ColonneCollable | null)[]
 }
 
 /** Limite de sécurité : un collage reste un geste d'édition, pas un import. */
@@ -104,7 +110,9 @@ export async function collerBloc(
 
   if (manquantes > 0) ordre = await ordreAffichage()
 
-  const departColonne = COLONNES_COLLABLES.indexOf(entree.colonneDepart)
+  const largeur = entree.lignes.reduce((max, ligne) => Math.max(max, ligne.length), 0)
+  const mappage =
+    entree.mappage ?? mappagePositionnel(entree.colonneDepart, largeur).map((c) => c.colonne)
   const modifications: ModificationPoste[] = []
 
   for (const [indexLigne, ligne] of entree.lignes.entries()) {
@@ -114,8 +122,11 @@ export async function collerBloc(
     const modification: { id: string } & Record<string, unknown> = { id: posteId }
 
     for (const [indexCellule, valeur] of ligne.entries()) {
-      const colonne = COLONNES_COLLABLES[departColonne + indexCellule]
-      if (!colonne) break
+      // Une colonne sans correspondance n'est pas collée : on passe à la
+      // suivante plutôt que d'interrompre la ligne, car l'économiste peut avoir
+      // écarté une colonne du milieu.
+      const colonne = mappage[indexCellule]
+      if (!colonne) continue
 
       switch (colonne) {
         case 'code':
