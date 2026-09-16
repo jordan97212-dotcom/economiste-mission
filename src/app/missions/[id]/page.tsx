@@ -37,6 +37,10 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
     select: { id: true, code: true, libelle: true },
   })
 
+  // Sur une mission encore vide, importer est l'action la plus probable : le
+  // bouton passe donc devant, au lieu d'être rangé derrière la clôture.
+  const chiffrageVide = lots.every((lot) => lot.postes.length === 0)
+
   const surface = mission.surfaceShon ?? mission.surfaceUtile
   const trameHonoraires = await db.trame.findFirst({
     where: { type: 'HONORAIRES' },
@@ -63,8 +67,17 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <Link href={`/missions/${mission.id}/chiffrage`} className="bouton bouton-primaire">
+          <Link
+            href={`/missions/${mission.id}/chiffrage`}
+            className={`bouton ${chiffrageVide ? '' : 'bouton-primaire'}`}
+          >
             Ouvrir le chiffrage
+          </Link>
+          <Link
+            href={`/missions/${mission.id}/import`}
+            className={`bouton ${chiffrageVide ? 'bouton-primaire' : ''}`}
+          >
+            Importer un DPGF
           </Link>
           <Link href={`/missions/${mission.id}/dce`} className="bouton">
             Pièces écrites
@@ -74,9 +87,6 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
           </Link>
           <Link href={`/missions/${mission.id}/cloture`} className="bouton">
             Clôture
-          </Link>
-          <Link href={`/missions/${mission.id}/import`} className="bouton">
-            Importer un DPGF
           </Link>
           <Link href={`/missions/${mission.id}/modifier`} className="bouton">
             Modifier
@@ -221,7 +231,11 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
         </div>
 
         {lots.length === 0 ? (
-          <p className="vide">Aucun lot. Créez le premier ci-dessous, puis saisissez son chiffrage.</p>
+          <p className="vide">
+            Aucun lot. Créez le premier ci-dessous et saisissez son chiffrage au clavier, ou{' '}
+            <Link href={`/missions/${mission.id}/import`}>importez un DPGF existant</Link> — lots et
+            ouvrages sont alors créés d’un coup, sans ressaisie.
+          </p>
         ) : (
           <div className="defilement">
             <table className="tableau">
