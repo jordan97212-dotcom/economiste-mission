@@ -20,6 +20,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 7 | DCE : CCTP, CCAP, CCTG, contrôle de cohérence | Livré |
 | 8 | Honoraires, export complet, journal d'audit | Livré |
 | 9 | Référentiel des normes et DTU, contrôle des citations | Livré |
+| 10 | Consultation des entreprises, analyse comparative des offres (phase 2) | Livré |
 
 La phase 1 de la spécification est couverte : cadrage de mission, chiffrage
 détaillé et rédaction du DCE. On crée ou duplique une mission, on saisit son
@@ -319,6 +320,49 @@ L'implémentation actuelle, `ReleveManuel`, rend ce qu'on lui donne et annonce
 `automatique: false` — pour que l'interface ne promette pas ce qu'elle ne peut
 pas tenir.
 
+## Consultation des entreprises et analyse des offres
+
+Phase 2 de la spécification (§5.5). Depuis la fiche mission, chaque lot porte
+un bouton « Consultation » vers son propre écran.
+
+### Deux façons de saisir une offre
+
+Un montant global par lot, ou une reprise ligne à ligne quand l'entreprise a
+renvoyé le DPGF « à remplir ». La seconde s'appuie sur l'onglet technique
+`_identifiants` que l'export pose déjà à côté des colonnes visibles : chaque
+ligne retrouve son poste par un identifiant, jamais par un rapprochement sur
+la désignation, qui peut avoir changé entre l'envoi et le retour du fichier.
+Un poste que l'entreprise n'a pas chiffré, et un prix qu'on ne sait pas lire,
+sont comptés et signalés séparément — jamais confondus avec un zéro.
+
+### Tableau comparatif
+
+Entreprises en colonnes, ouvrages en lignes, comme demandé. L'écart de chaque
+offre vis-à-vis de l'estimatif s'affiche en euros et en pourcentage. La
+mention « mieux-disant » ne se pose que parmi les offres marquées conformes :
+la moins chère des offres écartées ne doit jamais gagner par ce seul fait.
+
+Les écarts anormaux se signalent à deux niveaux, avec les mêmes seuils et la
+même logique : le montant global de l'offre vis-à-vis de l'estimatif du lot et
+de la médiane des offres reçues, et — pour les offres détaillées — chaque
+ligne vis-à-vis de l'estimatif du poste. Une offre dont le total semble normal
+peut cacher un prix anormalement bas sur un seul poste ; les deux niveaux de
+contrôle se complètent.
+
+### Brouillon de rapport d'analyse
+
+Un premier jet chiffré part tout seul du tableau : offres reçues, écarts,
+mieux-disant parmi les conformes. Il ne désigne jamais d'attributaire — ce
+choix reste humain — et se termine toujours par une invite à le compléter. Le
+texte se modifie comme celui d'un CCTP, avec le même enregistrement différé,
+puis se télécharge en Word avec le tableau chiffré en regard.
+
+### Une remise globale, répartie point 10.8
+
+Une offre peut porter une remise globale, distincte des prix de chaque ligne.
+Elle se soustrait du montant déclaré pour obtenir le montant net qui sert à
+toute comparaison — jamais retirée d'une seule ligne au choix.
+
 ## Organisation du code
 
 ```
@@ -330,6 +374,7 @@ src/
     offres/          écarts vis-à-vis de l'estimatif, offres à vérifier
     texte/           format des pièces écrites, variables de mission
     coherence/       contrôle DPGF vers CCTP avant export
+    offres/          écarts, anomalies, tableau comparatif
     normes/          détection des normes citées, contrôle de leur statut
   application/     cas d'usage et ports
     ports/           SourcePrix, en attendant une éventuelle base tierce
@@ -341,6 +386,9 @@ src/
     trames/          bibliothèque de textes réutilisables
     audit/           journal des modifications et sa mise en forme
     normes/          référentiel des normes et DTU
+    entreprises/     répertoire des entreprises
+    consultations/   suivi des consultations par lot
+    offres/          saisie et import des offres, tableau comparatif, rapport
     export/          archive complète des données du compte
     saisie.ts        lecture des nombres et unités d'un tableur français
   infrastructure/  Prisma cloisonné par propriétaire, authentification argon2id

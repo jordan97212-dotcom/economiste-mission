@@ -1,0 +1,137 @@
+import { describe, expect, it } from 'vitest'
+import * as Money from '../money/money'
+import { construireComparatif, type OffreAComparer, type PosteComparatif } from './comparatif'
+
+const euros = (valeur: string) => Money.depuisEuros(valeur)
+
+const POSTES: PosteComparatif[] = [
+  { posteId: 'p1', code: '02.01', designation: 'Voile béton', unite: 'M3', montantEstimeHt: euros('10000') },
+  { posteId: 'p2', code: '02.02', designation: 'Dalle', unite: 'M2', montantEstimeHt: euros('5000') },
+]
+
+function offreGlobale(id: string, entreprise: string, montant: string, options: Partial<OffreAComparer> = {}): OffreAComparer {
+  return {
+    offreId: id,
+    entrepriseNom: entreprise,
+    montantHt: euros(montant),
+    remiseGlobaleHt: Money.ZERO,
+    conforme: true,
+    lignes: [],
+    ...options,
+  }
+}
+
+describe('construction du tableau comparatif', () => {
+  it('calcule l’estimatif du lot comme somme des postes', () => {
+    const tableau = construireComparatif(POSTES, [])
+    expect(tableau.montantEstimeHt).toEqual(euros('15000'))
+  })
+
+  it('désigne la moins chère parmi les offres conformes', () => {
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('a', 'Entreprise A', '16000'),
+      offreGlobale('b', 'Entreprise B', '14000'),
+      offreGlobale('c', 'Entreprise C', '15500'),
+    ])
+    const gagnante = tableau.colonnes.find((c) => c.moinsDisante)
+    expect(gagnante?.offreId).toBe('b')
+    expect(tableau.colonnes.filter((c) => c.moinsDisante)).toHaveLength(1)
+  })
+
+  it('ignore les non conformes pour désigner la moins-disante', () => {
+    // La moins chère, mais écartée : ne doit jamais gagner par ce seul fait.
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('a', 'Entreprise A', '9000', { conforme: false }),
+      offreGlobale('b', 'Entreprise B', '15000'),
+    ])
+    const gagnante = tableau.colonnes.find((c) => c.moinsDisante)
+    expect(gagnante?.offreId).toBe('b')
+  })
+
+  it('ne désigne personne s’il n’y a aucune offre conforme', () => {
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('a', 'Entreprise A', '9000', { conforme: false }),
+    ])
+    expect(tableau.colonnes.some((c) => c.moinsDisante)).toBe(false)
+  })
+
+  it('soustrait la remise globale pour le montant net et l’écart', () => {
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('a', 'Entreprise A', '16000', { remiseGlobaleHt: euros('1000') }),
+    ])
+    const colonne = tableau.colonnes[0]!
+    expect(colonne.montantNetHt).toEqual(euros('15000'))
+    expect(colonne.ecart.pourcent?.toFixed(2)).toBe('0.00')
+  })
+
+  it('signale une offre globale anormalement basse par rapport à l’estimatif', () => {
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('a', 'Entreprise A', '10000'), // -33 % vs 15 000
+    ])
+    expect(tableau.anomaliesGlobales).toHaveLength(1)
+    expect(tableau.anomaliesGlobales[0]?.motif).toBe('basse_vs_estimatif')
+    expect(tableau.anomaliesGlobales[0]?.reference).toBe('a')
+  })
+
+  it('une offre non détaillée ne remplit aucune cellule de ligne', () => {
+    const tableau = construireComparatif(POSTES, [offreGlobale('a', 'Entreprise A', '15000')])
+    for (const ligne of tableau.lignes) {
+      expect(ligne.cellules.every((c) => c.montantHt === null)).toBe(true)
+    }
+  })
+
+  it('une offre détaillée remplit ses cellules poste par poste', () => {
+    const tableau = construireComparatif(POSTES, [
+      {
+        ...offreGlobale('a', 'Entreprise A', '15000'),
+        lignes: [
+          { posteId: 'p1', montantHt: euros('10000') },
+          { posteId: 'p2', montantHt: euros('5000') },
+        ],
+      },
+    ])
+    const ligneP1 = tableau.lignes.find((l) => l.poste.posteId === 'p1')
+    expect(ligneP1?.cellules[0]?.montantHt).toEqual(euros('10000'))
+  })
+
+  it('détecte une anomalie de ligne entre offres détaillées, indépendamment du total', () => {
+    const tableau = construireComparatif(POSTES, [
+      {
+        ...offreGlobale('a', 'Entreprise A', '15000'),
+        lignes: [
+          { posteId: 'p1', montantHt: euros('2000') }, // -80 % vs estimatif du poste
+          { posteId: 'p2', montantHt: euros('13000') }, // compense le total
+        ],
+      },
+    ])
+    const ligneP1 = tableau.lignes.find((l) => l.poste.posteId === 'p1')
+    expect(ligneP1?.anomalies).toHaveLength(1)
+    expect(ligneP1?.anomalies[0]?.motif).toBe('basse_vs_estimatif')
+    // Le total de l'offre, lui, ne s'écarte pas assez de l'estimatif pour être signalé.
+    expect(tableau.anomaliesGlobales).toEqual([])
+  })
+
+  it('ne compare une ligne qu’entre les offres qui l’ont effectivement chiffrée', () => {
+    const tableau = construireComparatif(POSTES, [
+      { ...offreGlobale('a', 'Entreprise A', '15000'), lignes: [{ posteId: 'p1', montantHt: euros('10000') }] },
+      offreGlobale('b', 'Entreprise B', '14000'), // globale : aucune ligne
+    ])
+    const ligneP2 = tableau.lignes.find((l) => l.poste.posteId === 'p2')
+    // Seule "a" a chiffré p1 ; aucune n'a chiffré p2 : aucune anomalie de ligne possible.
+    expect(ligneP2?.anomalies).toEqual([])
+    expect(ligneP2?.cellules.map((c) => c.montantHt)).toEqual([null, null])
+  })
+
+  it('rend un tableau vide sans erreur en l’absence d’offre', () => {
+    const tableau = construireComparatif(POSTES, [])
+    expect(tableau.colonnes).toEqual([])
+    expect(tableau.anomaliesGlobales).toEqual([])
+    expect(tableau.lignes).toHaveLength(2)
+  })
+
+  it('rend un tableau vide sans erreur en l’absence de poste chiffré', () => {
+    const tableau = construireComparatif([], [offreGlobale('a', 'Entreprise A', '1000')])
+    expect(Money.estZero(tableau.montantEstimeHt)).toBe(true)
+    expect(tableau.lignes).toEqual([])
+  })
+})

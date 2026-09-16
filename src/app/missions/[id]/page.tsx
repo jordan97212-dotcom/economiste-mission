@@ -229,6 +229,7 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
                   <th style={{ textAlign: 'right' }}>Part</th>
                   <th>Postes</th>
                   <th />
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -257,6 +258,11 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
                         {ligneRecap?.partPourcent ? `${ligneRecap.partPourcent.replace('.', ',')} %` : '—'}
                       </td>
                       <td className="chiffre">{lot.postes.length}</td>
+                      <td>
+                        <Link href={`/missions/${mission.id}/consultation/${lot.id}`} className="bouton bouton-discret">
+                          Consultation
+                        </Link>
+                      </td>
                       <td>
                         <form action={actionSupprimerLot}>
                           <input type="hidden" name="missionId" value={mission.id} />

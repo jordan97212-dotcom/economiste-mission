@@ -285,6 +285,11 @@ model Lot {
   montantEstimeHt BigInt  @default(0) @map("montant_estime_ht")
   montantRetenuHt BigInt? @map("montant_retenu_ht")
 
+  /// Brouillon de rapport d'analyse des offres — §5.5. Même format que le
+  /// texte de CCTP : à compléter et valider par l'économiste, jamais généré
+  /// comme document final sans relecture.
+  rapportOffresBrouillon Json? @map("rapport_offres_brouillon")
+
   postes        Poste[]
   consultations Consultation[]
   situations    SituationTravaux[]

@@ -15,6 +15,10 @@ export const LIBELLES_ENTITE: Record<string, string> = {
   TexteCctp: 'Texte de CCTP',
   Import: 'Import de DPGF',
   Norme: 'Norme ou DTU',
+  Entreprise: 'Entreprise',
+  Consultation: 'Consultation',
+  Offre: 'Offre',
+  RapportOffres: 'Rapport d’analyse des offres',
 }
 
 export const LIBELLES_ACTION: Record<string, string> = {
@@ -42,7 +46,7 @@ export const LIBELLES_CHAMP: Record<string, string> = {
   ouvragesImportes: 'ouvrages importés',
   sousLotsImportes: 'sous-lots importés',
   contenuRemplace: 'contenu remplacé',
-  longueur: 'longueur du texte',
+  longueur: 'longueur du texte ou du brouillon',
   nomOperation: 'nom de l’opération',
   reference: 'référence',
   statut: 'statut',
@@ -51,6 +55,16 @@ export const LIBELLES_CHAMP: Record<string, string> = {
   numero: 'numéro',
   remplaceePar: 'remplacée par',
   referencesVersees: 'références versées au référentiel',
+  raisonSociale: 'raison sociale',
+  siret: 'SIRET',
+  montantHt: 'montant',
+  remiseGlobaleHt: 'remise globale',
+  conforme: 'conforme',
+  observationsTechniques: 'observations',
+  dateEnvoiDce: 'envoi du DCE',
+  dateLimiteRemise: 'date limite',
+  dateReceptionOffre: 'réception de l’offre',
+  nbLignes: 'lignes importées',
 }
 
 /**
@@ -63,6 +77,8 @@ const CHAMPS_MONETAIRES: ReadonlyMap<string, { echelle: number; decimales: numbe
   ['honorairesMissionHt', { echelle: 100, decimales: 2 }],
   ['budgetPrevisionnelHt', { echelle: 100, decimales: 2 }],
   ['montantSupprimeHt', { echelle: 100, decimales: 2 }],
+  ['montantHt', { echelle: 100, decimales: 2 }],
+  ['remiseGlobaleHt', { echelle: 100, decimales: 2 }],
 ])
 
 /** Rend une valeur du journal telle qu'un économiste la relit. */

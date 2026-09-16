@@ -28,6 +28,10 @@ export type EntiteAuditee =
   | 'TexteCctp'
   | 'Import'
   | 'Norme'
+  | 'Entreprise'
+  | 'Consultation'
+  | 'Offre'
+  | 'RapportOffres'
 
 export interface EntreeAudit {
   readonly entite: EntiteAuditee

@@ -66,7 +66,7 @@ function paragrapheDepuisBloc(bloc: BlocTexte, niveauTitre: (typeof HeadingLevel
   })
 }
 
-function rendreTexte(contenu: string, niveauTitre: (typeof HeadingLevel)[keyof typeof HeadingLevel]): Paragraph[] {
+export function rendreTexte(contenu: string, niveauTitre: (typeof HeadingLevel)[keyof typeof HeadingLevel]): Paragraph[] {
   return analyserTexte(contenu).map((bloc) => paragrapheDepuisBloc(bloc, niveauTitre))
 }
 
