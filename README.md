@@ -22,13 +22,15 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 9 | Référentiel des normes et DTU, contrôle des citations | Livré |
 | 10 | Consultation des entreprises, analyse comparative des offres (phase 2) | Livré |
 | 11 | Attribution, avenants, situations de travaux, suivi financier (phase 3) | Livré |
+| 12 | Clôture : décompte général, réinjection des prix réels, archivage | Livré |
 
-La phase 1 de la spécification est couverte : cadrage de mission, chiffrage
-détaillé et rédaction du DCE. On crée ou duplique une mission, on saisit son
-chiffrage au clavier ou par import Excel, on s'appuie sur sa base de prix, on
-rédige les textes de CCTP, et on sort le bordereau et les pièces écrites en
-Excel, Word et PDF. Restent les phases 2 et 3 : consultation des entreprises,
-puis suivi financier de chantier.
+Les trois phases de la spécification sont couvertes, du cadrage à la clôture.
+On crée ou duplique une mission, on saisit son chiffrage au clavier ou par
+import Excel, on s'appuie sur sa base de prix, on rédige les textes de CCTP et
+on sort le bordereau et les pièces écrites en Excel, Word et PDF ; on consulte
+les entreprises et on compare les offres ; on attribue, on suit les situations
+et les avenants ; et à la fin, les prix réellement pratiqués viennent enrichir
+la base pour l'opération suivante.
 
 ## Pour s'en servir
 
@@ -433,6 +435,51 @@ Le tableau s'exporte en Excel, en deux feuilles — synthèse de l'opération et
 détail par lot — avec des nombres et non du texte, pour que le destinataire
 puisse les reprendre sans les retaper.
 
+## Clôture de l'opération
+
+### Le décompte général
+
+Marché actuel, travaux exécutés, solde non exécuté, retenue de garantie à
+restituer et net réglé, par lot puis pour l'opération entière. Le document
+Word qui en sort s'appelle **projet** de décompte, et le dit en toutes lettres :
+il ne comporte ni révision de prix, ni actualisation, ni intérêts moratoires,
+ni pénalités.
+
+Ce n'est pas un oubli. L'application ne tient aucune de ces données — pas
+d'index BT, pas de dates de paiement, pas de constat de retard. Les calculer
+demanderait de les inventer, et un décompte général est une pièce
+contractuelle : un chiffre faux s'y paie cher. Le document sort donc complet
+de ce qu'il sait et franc sur ce qu'il ignore, à compléter avant signature.
+
+### La réinjection des prix réels
+
+C'est ce qui referme la boucle du projet. À la clôture, l'application propose
+les prix unitaires **de l'offre retenue**, ligne à ligne, en face de ceux qui
+avaient été estimés, avec l'écart en pourcentage. Chaque ligne cochée part dans
+la base de prix personnelle, avec le contexte de l'opération — type d'ouvrage,
+nature des travaux, zone — et l'identifiant de la mission d'origine.
+
+Deux règles, toutes deux dans la spécification :
+
+- **le prix versé vient de l'entreprise, jamais de l'estimatif.** Verser son
+  propre chiffrage reviendrait à se citer soi-même comme référence, et à
+  confondre pour toujours ce qu'on avait prévu avec ce qui s'est pratiqué ;
+- **rien n'entre en base sans avoir été coché.** L'écran propose, il n'écrit
+  pas tout seul.
+
+Un poste que l'entreprise n'a pas chiffré, un poste sans unité, un prix à zéro :
+aucun ne devient un candidat, et chacun apparaît dans la liste des postes
+écartés avec son motif. Un prix dont un équivalent existe déjà en base est
+signalé « déjà en base » mais reste versable — deux relevés d'un même ouvrage,
+c'est de la dispersion, pas un doublon.
+
+### L'archivage
+
+Clôturer passe l'opération en « terminée » et l'horodate. Rien n'est supprimé
+ni verrouillé : le chiffrage, les pièces, les offres, les situations et le
+journal restent entièrement consultables, et l'opération peut être rouverte.
+Une clôture prononcée trop tôt ne doit pas être un piège.
+
 ## Organisation du code
 
 ```
@@ -440,14 +487,14 @@ src/
   domain/          TypeScript pur, aucune I/O, testable en millisecondes
     money/           Money, PrixUnitaire, arrondis
     chiffrage/       cascade des coefficients, calcul de ligne, totaux, ratios
-    situations/      avancement, cumuls, tableau financier, alerte de dérive
-    offres/          écarts vis-à-vis de l'estimatif, offres à vérifier
+    situations/      avancement, cumuls, tableau financier, décompte de solde
+    offres/          écarts vis-à-vis de l'estimatif, anomalies, comparatif
     texte/           format des pièces écrites, variables de mission
     coherence/       contrôle DPGF vers CCTP avant export
-    offres/          écarts, anomalies, tableau comparatif
     normes/          détection des normes citées, contrôle de leur statut
+    cloture/         décompte général, sélection des prix à réinjecter
   application/     cas d'usage et ports
-    ports/           SourcePrix, en attendant une éventuelle base tierce
+    ports/           SourcePrix et SourceNormes, en attendant d'éventuelles sources tierces
     missions/        création, modification, duplication
     chiffrage/       recalcul persisté, arborescence, collage
     prix/            base de prix personnelle, import de classeur
@@ -463,13 +510,14 @@ src/
     avenants/        avenants de l'opération et des lots
     situations/      situations de travaux, rechaînage des cumuls
     suivi/           tableau de bord financier de chantier
+    cloture/         décompte général, réinjection des prix, archivage
     export/          archive complète des données du compte
     saisie.ts        lecture des nombres et unités d'un tableur français
   infrastructure/  Prisma cloisonné par propriétaire, authentification argon2id
     sources-prix/    implémentation du port SourcePrix
     sources-normes/  implémentation du port SourceNormes
-    excel/           lecture de classeurs, génération du DPGF
-    docx/            pièces écrites et conversion PDF
+    excel/           lecture de classeurs, DPGF, tableau de suivi
+    docx/            pièces écrites, rapport d'offres, décompte, conversion PDF
   app/             Next.js : pages, actions serveur
   components/      grille de chiffrage, formulaire de mission
 prisma/

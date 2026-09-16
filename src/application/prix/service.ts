@@ -21,6 +21,8 @@ export interface EntreePrix {
   readonly contexteTypeOuvrage?: string | null
   readonly contexteNature?: string | null
   readonly zone?: string | null
+  /** Mission d'où le prix a été relevé, quand il vient d'une clôture — §5.7. */
+  readonly origineMissionId?: string | null
 }
 
 export class PrixIntrouvable extends Error {
@@ -51,6 +53,7 @@ interface DonneesPrix {
   contexteTypeOuvrage: TypeOuvrage | null
   contexteNature: Nature | null
   zone: ZoneValeur
+  origineMissionId: string | null
 }
 
 function donnees(entree: EntreePrix): DonneesPrix {
@@ -67,6 +70,7 @@ function donnees(entree: EntreePrix): DonneesPrix {
     contexteTypeOuvrage: (entree.contexteTypeOuvrage || null) as TypeOuvrage | null,
     contexteNature: (entree.contexteNature || null) as Nature | null,
     zone: (entree.zone || 'MARTINIQUE') as ZoneValeur,
+    origineMissionId: entree.origineMissionId ?? null,
   }
 }
 
