@@ -596,6 +596,40 @@ ni verrouillé : le chiffrage, les pièces, les offres, les situations et le
 journal restent entièrement consultables, et l'opération peut être rouverte.
 Une clôture prononcée trop tôt ne doit pas être un piège.
 
+## Dépendances et alertes de sécurité
+
+`npm audit` sert de garde-fou, pas d'oracle : une alerte se juge sur l'usage
+réel qu'en fait le projet, pas sur son étiquette de gravité.
+
+### Ce qui a été traité
+
+**Prisma** est monté de 6.2 à 6.19, dans la même majeure. **postcss** est forcé
+en `^8.5.28` par un `overrides`, parce que la copie vulnérable était celle que
+Next épingle en interne, pas la nôtre : corriger là évitait de sauter sur Next
+16 pour une faille — du CSS attaquant traité par postcss — à laquelle un projet
+dont tout le CSS est écrit à la main n'est pas exposé. **deepmerge-ts** est
+forcé en `^8`, ce que le client Prisma accepte sans broncher. **Vitest** est
+passé de 2 à 5, et les 444 tests sont repassés sans une seule modification.
+
+De douze alertes, il en reste deux, et plus aucune haute ni critique.
+
+### Ce qui n'a pas été traité, et pourquoi
+
+Il reste `exceljs` et son `uuid`. L'avis porte sur un défaut de borne dans
+`uuid` v3, v5 et v6 **quand un tampon est fourni**. ExcelJS n'appelle que
+`uuidv4()`, sans argument — vérifié dans son source — et le projet n'utilise
+`uuid` nulle part directement. L'application n'est donc pas exposée.
+
+Surtout, le « correctif » que propose npm est `exceljs@3.4.0`, c'est-à-dire un
+**retour en arrière** depuis la 4.4.0. Ce n'est pas une correction : ce serait
+une régression sur le générateur du DPGF, pour une faille qui ne nous atteint
+pas. L'alerte reste donc ouverte, sciemment.
+
+Deux autres avis méritaient d'être relativisés au passage. Le critique de Vitest
+ne vaut que si son interface web écoute, ce que ce projet ne lance jamais ; et
+celui d'esbuild ne concerne que le serveur de développement. Ils ont quand même
+été corrigés, parce que la montée de version ne coûtait rien.
+
 ## Organisation du code
 
 ```
