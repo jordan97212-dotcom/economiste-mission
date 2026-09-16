@@ -268,7 +268,16 @@ function SectionOffres({
   consultations: readonly ConsultationAffichee[]
   tableau: TableauAffiche
 }) {
-  const [consultationId, setConsultationId] = useState(consultations[0]?.id ?? '')
+  // Le choix explicite de l'économiste prime, mais tant qu'il n'a pas choisi —
+  // ou si la consultation qu'il avait choisie a disparu — on retombe sur la
+  // première de la liste. Un état figé à l'initialisation enverrait une valeur
+  // vide après l'ajout de la toute première consultation, alors que le menu
+  // afficherait une entreprise.
+  const [choix, setChoix] = useState<string | null>(null)
+  const consultationId =
+    choix !== null && consultations.some((c) => c.id === choix)
+      ? choix
+      : (consultations[0]?.id ?? '')
   const [modeExcel, setModeExcel] = useState(false)
   const [etatGlobale, enregistrerGlobale] = useActionState<EtatConsultation, FormData>(
     actionEnregistrerOffreGlobale,
@@ -341,7 +350,7 @@ function SectionOffres({
               <select
                 id="consultationChoisie"
                 value={consultationId}
-                onChange={(e) => setConsultationId(e.target.value)}
+                onChange={(e) => setChoix(e.target.value)}
               >
                 {consultations.map((c) => (
                   <option key={c.id} value={c.id}>{c.entrepriseNom}</option>

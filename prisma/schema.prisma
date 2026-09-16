@@ -290,6 +290,13 @@ model Lot {
   /// comme document final sans relecture.
   rapportOffresBrouillon Json? @map("rapport_offres_brouillon")
 
+  /// L'offre retenue à l'issue de l'analyse — §5.6. C'est elle qui fixe le
+  /// marché du lot : sans attribution, une situation de travaux n'a aucune
+  /// base sur laquelle s'appuyer. `montantRetenuHt` en est le montant net,
+  /// recopié ici pour que le marché ne dépende pas d'une jointure.
+  offreRetenueId String? @unique @map("offre_retenue_id")
+  offreRetenue   Offre?  @relation("OffreRetenue", fields: [offreRetenueId], references: [id], onDelete: SetNull)
+
   postes        Poste[]
   consultations Consultation[]
   situations    SituationTravaux[]
@@ -476,6 +483,9 @@ model Offre {
 
   lignes        LigneOffre[]
   piecesJointes PieceJointe[]
+
+  /// Renseigné quand ce lot a retenu cette offre.
+  lotAttribue Lot? @relation("OffreRetenue")
 
   @@index([consultationId])
   @@map("offre")

@@ -21,6 +21,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 8 | Honoraires, export complet, journal d'audit | Livré |
 | 9 | Référentiel des normes et DTU, contrôle des citations | Livré |
 | 10 | Consultation des entreprises, analyse comparative des offres (phase 2) | Livré |
+| 11 | Attribution, avenants, situations de travaux, suivi financier (phase 3) | Livré |
 
 La phase 1 de la spécification est couverte : cadrage de mission, chiffrage
 détaillé et rédaction du DCE. On crée ou duplique une mission, on saisit son
@@ -363,6 +364,75 @@ Une offre peut porter une remise globale, distincte des prix de chaque ligne.
 Elle se soustrait du montant déclaré pour obtenir le montant net qui sert à
 toute comparaison — jamais retirée d'une seule ligne au choix.
 
+## Suivi financier de chantier
+
+Phase 3 de la spécification (§5.6). Depuis la fiche mission, bouton
+« Suivi de chantier ».
+
+### L'attribution, maillon obligatoire
+
+Une situation de travaux se calcule sur le marché du lot, jamais sur son
+estimatif. Tant qu'aucune offre n'est retenue, le lot n'a pas de marché et
+l'application refuse toute situation — avec un message qui dit pourquoi
+plutôt qu'un champ grisé sans explication. Retenir une offre fixe le marché
+au montant net de remise, recopié sur le lot : il ne doit pas changer sous
+les pieds de l'économiste parce qu'une offre a été corrigée après coup.
+
+Une offre non conforme peut être retenue — après régularisation, cela
+arrive — mais le fait est journalisé tel quel. L'application constate, elle
+ne juge pas à la place de l'économiste.
+
+### Ce qu'une situation conserve vraiment
+
+Une situation est **un montant cumulé validé à une date**. Le pourcentage
+d'avancement n'est qu'une façon de le saisir, et un affichage.
+
+La conséquence est voulue : quand un avenant élargit le marché, une situation
+déjà validée ne bouge pas d'un centime — on ne récrit pas ce qui a été
+certifié — et seul son pourcentage, qui n'est qu'une lecture, se recalcule.
+
+Le montant de période n'est jamais saisi : il se déduit du cumul de la
+situation moins celui de la précédente. Toute écriture sur un lot rechaîne
+ses situations dans l'ordre, si bien que **la somme des périodes retombe
+toujours exactement sur le cumul final**. Supprimer une situation du milieu
+renumérote les suivantes et les rechaîne : une suite trouée se lit mal sur un
+décompte.
+
+### Retenue de garantie, avance, compte prorata
+
+Point 10.6 de l'architecture. Les trois montants sont saisis par
+l'économiste, pas déduits de règles codées en dur : les taux varient selon le
+marché, le CCAP et les négociations, et une règle figée dans l'application se
+tromperait souvent et en silence. Le domaine calcule le net à payer et les
+cumuls, et sait proposer une retenue à un taux donné — un brouillon, jamais
+une valeur imposée.
+
+Le net à payer peut être négatif : une situation de régularisation en
+moins-value existe, et la masquer serait pire que la montrer.
+
+### Avenants
+
+Un avenant peut porter sur un lot ou sur l'opération entière, et son montant
+peut être négatif — une moins-value est un avenant comme un autre.
+
+**Seuls les avenants acceptés déplacent le marché.** Un avenant proposé ou
+refusé reste visible : c'est une trace utile en cas de contestation.
+
+### Tableau de bord et alerte de dérive
+
+Marché initial, avenants cumulés, marché actuel, travaux réalisés, reste à
+réaliser, écart vis-à-vis de l'estimatif en euros et en pourcentage. L'alerte
+se déclenche au seuil choisi sur la mission, 5 % par défaut.
+
+La comparaison se fait avec l'**estimatif courant du chiffrage**. Le figeage
+par phase (point 10.4) existe au schéma mais n'est pas encore exploité : tant
+qu'il ne l'est pas, parler d'« estimatif initial » serait inexact, et l'écran
+le dit.
+
+Le tableau s'exporte en Excel, en deux feuilles — synthèse de l'opération et
+détail par lot — avec des nombres et non du texte, pour que le destinataire
+puisse les reprendre sans les retaper.
+
 ## Organisation du code
 
 ```
@@ -389,6 +459,10 @@ src/
     entreprises/     répertoire des entreprises
     consultations/   suivi des consultations par lot
     offres/          saisie et import des offres, tableau comparatif, rapport
+    marche/          attribution d'un lot à une offre retenue
+    avenants/        avenants de l'opération et des lots
+    situations/      situations de travaux, rechaînage des cumuls
+    suivi/           tableau de bord financier de chantier
     export/          archive complète des données du compte
     saisie.ts        lecture des nombres et unités d'un tableur français
   infrastructure/  Prisma cloisonné par propriétaire, authentification argon2id

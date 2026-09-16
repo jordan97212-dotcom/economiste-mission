@@ -19,6 +19,8 @@ export const LIBELLES_ENTITE: Record<string, string> = {
   Consultation: 'Consultation',
   Offre: 'Offre',
   RapportOffres: 'Rapport d’analyse des offres',
+  Attribution: 'Attribution de marché',
+  Situation: 'Situation de travaux',
 }
 
 export const LIBELLES_ACTION: Record<string, string> = {
@@ -65,6 +67,18 @@ export const LIBELLES_CHAMP: Record<string, string> = {
   dateLimiteRemise: 'date limite',
   dateReceptionOffre: 'réception de l’offre',
   nbLignes: 'lignes importées',
+  objet: 'objet',
+  motif: 'motif',
+  numeroSituation: 'numéro de situation',
+  avancementPourcent: 'avancement',
+  montantCumuleHt: 'montant cumulé',
+  montantPeriodeHt: 'montant de la période',
+  retenueGarantieHt: 'retenue de garantie',
+  avanceRemboursee: 'avance remboursée',
+  compteProrataHt: 'compte prorata',
+  montantRetenuHt: 'montant du marché',
+  periode: 'période',
+  dateValidation: 'date de validation',
 }
 
 /**
@@ -79,6 +93,12 @@ const CHAMPS_MONETAIRES: ReadonlyMap<string, { echelle: number; decimales: numbe
   ['montantSupprimeHt', { echelle: 100, decimales: 2 }],
   ['montantHt', { echelle: 100, decimales: 2 }],
   ['remiseGlobaleHt', { echelle: 100, decimales: 2 }],
+  ['montantCumuleHt', { echelle: 100, decimales: 2 }],
+  ['montantPeriodeHt', { echelle: 100, decimales: 2 }],
+  ['retenueGarantieHt', { echelle: 100, decimales: 2 }],
+  ['avanceRemboursee', { echelle: 100, decimales: 2 }],
+  ['compteProrataHt', { echelle: 100, decimales: 2 }],
+  ['montantRetenuHt', { echelle: 100, decimales: 2 }],
 ])
 
 /** Rend une valeur du journal telle qu'un économiste la relit. */

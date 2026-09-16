@@ -32,6 +32,8 @@ export type EntiteAuditee =
   | 'Consultation'
   | 'Offre'
   | 'RapportOffres'
+  | 'Attribution'
+  | 'Situation'
 
 export interface EntreeAudit {
   readonly entite: EntiteAuditee
