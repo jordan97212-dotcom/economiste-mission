@@ -3,6 +3,7 @@ import * as Money from '../../domain/money/money'
 import { tableauFinancier } from '../../domain/situations/calcul'
 import { tauxRetenueConstate } from '../../domain/situations/decompte'
 import { cumulDuLot, marcheDuLot } from '../situations/service'
+import { estChiffrageFige } from '../../domain/chiffrage/comparaison'
 
 /**
  * Tableau de bord financier de chantier — SPEC_APP_ECONOMISTE.md §5.6.
@@ -37,7 +38,15 @@ export interface LigneSuiviLot {
   readonly entrepriseNom: string | null
 }
 
+/** Sur quoi l'écart se mesure. L'écran le dit, au lieu de laisser deviner. */
+export interface ReferenceEstimatif {
+  readonly origine: 'version_figee' | 'chiffrage_courant'
+  readonly libelle: string
+  readonly figeLe: string | null
+}
+
 export interface SuiviMission {
+  readonly referenceEstimatif: ReferenceEstimatif
   readonly estimatifHt: string
   readonly marcheInitialHt: string
   readonly avenantsCumulesHt: string
@@ -55,12 +64,67 @@ export interface SuiviMission {
   readonly lots: readonly LigneSuiviLot[]
 }
 
+interface ReferenceChargee {
+  readonly description: ReferenceEstimatif
+  /** Montant figé par numéro de lot. Vide quand aucune version n'existe. */
+  readonly parLot: Map<string, string>
+}
+
+/**
+ * Trouve la version figée qui sert de référence.
+ *
+ * Le DCE d'abord : c'est le chiffrage sur lequel les entreprises ont remis
+ * leurs offres, donc le seul auquel comparer le réalisé ait un sens
+ * contractuel. À défaut, la dernière version figée. À défaut encore, rien —
+ * et l'appelant retombe sur le chiffrage courant en le disant.
+ */
+async function chargerReferenceEstimatif(
+  client: PrismaClient,
+  missionId: string,
+): Promise<ReferenceChargee> {
+  const versions = await client.chiffrageVersion.findMany({
+    where: { missionId },
+    orderBy: { figeLe: 'desc' },
+    select: { phase: true, libelle: true, figeLe: true, contenu: true },
+  })
+
+  const retenue = versions.find((v) => v.phase === 'DCE') ?? versions[0]
+
+  if (!retenue || !estChiffrageFige(retenue.contenu)) {
+    return {
+      description: {
+        origine: 'chiffrage_courant',
+        libelle: 'Chiffrage actuel',
+        figeLe: null,
+      },
+      parLot: new Map(),
+    }
+  }
+
+  return {
+    description: {
+      origine: 'version_figee',
+      libelle: retenue.libelle,
+      figeLe: retenue.figeLe.toISOString(),
+    },
+    parLot: new Map(retenue.contenu.lots.map((lot) => [lot.numero, lot.montantEstimeHt])),
+  }
+}
+
 export async function chargerSuivi(client: PrismaClient, missionId: string): Promise<SuiviMission> {
   const mission = await client.mission.findUnique({
     where: { id: missionId },
     select: { id: true, seuilDerivePourcent: true },
   })
   if (!mission) throw new Error(`Mission introuvable : ${missionId}`)
+
+  // L'estimatif de référence vient d'une version figée quand il en existe une.
+  // Le DCE est retenu en priorité : c'est le chiffrage sur lequel les
+  // entreprises ont remis, donc celui auquel comparer le réalisé a un sens.
+  // À défaut, la dernière version figée ; à défaut encore, le chiffrage
+  // courant — et l'écran le dit, plutôt que de laisser croire à une référence
+  // stable qui n'existerait pas.
+  const reference = await chargerReferenceEstimatif(client, missionId)
 
   const lots = await client.lot.findMany({
     where: { missionId },
@@ -102,7 +166,7 @@ export async function chargerSuivi(client: PrismaClient, missionId: string): Pro
       lotId: lot.id,
       numero: lot.numero,
       intitule: lot.intitule,
-      estimatifHt: lot.montantEstimeHt.toString(),
+      estimatifHt: reference.parLot.get(lot.numero) ?? lot.montantEstimeHt.toString(),
       marcheInitialHt: marcheInitial !== null ? (marcheInitial as bigint).toString() : null,
       avenantsAcceptesHt: (avenants as bigint).toString(),
       marcheActuelHt: marcheActuel !== null ? (marcheActuel as bigint).toString() : null,
@@ -146,6 +210,7 @@ export async function chargerSuivi(client: PrismaClient, missionId: string): Pro
   })
 
   return {
+    referenceEstimatif: reference.description,
     estimatifHt: (estimatifHt as bigint).toString(),
     marcheInitialHt: (tableau.marcheInitialHt as bigint).toString(),
     avenantsCumulesHt: (tableau.avenantsCumulesHt as bigint).toString(),

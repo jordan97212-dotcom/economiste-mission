@@ -82,6 +82,9 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
           <Link href={`/missions/${mission.id}/dce`} className="bouton">
             Pièces écrites
           </Link>
+          <Link href={`/missions/${mission.id}/versions`} className="bouton">
+            Versions
+          </Link>
           <Link href={`/missions/${mission.id}/suivi`} className="bouton">
             Suivi de chantier
           </Link>

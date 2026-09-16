@@ -25,6 +25,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 12 | Clôture : décompte général, réinjection des prix réels, archivage | Livré |
 | 13 | Import de CCTP Word dans la bibliothèque de trames | Livré |
 | 14 | Génération du CCTP depuis le DPGF, par appariement des trames | Livré |
+| 15 | Versions de chiffrage figées et comparatif entre phases (point 10.4) | Livré |
 
 Les trois phases de la spécification sont couvertes, du cadrage à la clôture.
 On crée ou duplique une mission, on saisit son chiffrage au clavier ou par
@@ -348,6 +349,53 @@ import de trente articles qu'on n'a pas relus ne vaut rien.
 Quand aucun titre n'est reconnu, le document n'est pas perdu : il part en une
 seule trame, à découper à la main, et l'écran explique pourquoi.
 
+## Versions de chiffrage et comparatif
+
+Un DPGF évolue entre l'avant-projet, le projet et le dossier de consultation.
+Sans instantané, « l'écart vis-à-vis de l'estimatif initial » n'a pas de
+référent — c'est la raison pour laquelle le suivi de chantier comparait
+jusqu'ici au chiffrage courant, en le disant.
+
+### Une version figée ne bouge plus
+
+C'est ce qui lui donne sa valeur : elle sert de témoin, et un témoin qu'on
+retouche ne témoigne de rien. Elle se supprime, mais ne se modifie pas — se
+tromper de phase au figeage reste donc rattrapable.
+
+L'instantané est **cohérent avec lui-même par construction** : le montant d'un
+lot y est la somme des lignes qu'il porte, pas le total recopié depuis la base.
+Les deux coïncident tant que le recalcul fait son travail, mais la comparaison
+rapproche les totaux d'un instantané de ses propres lignes, et doit donc pouvoir
+s'y fier.
+
+### Ce que le comparatif répond vraiment
+
+Pas « de combien le total a-t-il bougé », qu'une soustraction suffirait à dire,
+mais **d'où vient l'écart**. Quarante mille euros entre l'APD et le PRO peuvent
+venir d'une ligne dont la quantité a doublé ou de douze lignes apparues : ce
+n'est pas le même sujet, et l'écran sépare les deux.
+
+Chaque ligne est dite apparue, disparue, modifiée ou inchangée, et une ligne
+modifiée nomme le champ qui a bougé — désignation, unité, quantité, prix
+unitaire — avec l'ancienne et la nouvelle valeur.
+
+L'appariement des lignes se fait par identifiant, qui survit aux modifications ;
+à défaut par code d'ouvrage au sein du lot, puis par désignation. Une ligne
+supprimée puis recréée reçoit un nouvel identifiant : sans ces replis, elle
+compterait pour une disparition **et** une apparition, ce qui doublerait
+faussement l'écart attribué aux mouvements de lignes. Un code présent en double
+n'apparie rien : associer deux lignes au hasard inventerait une modification sur
+la mauvaise.
+
+### Le suivi de chantier s'y appuie enfin
+
+L'écart de dérive se mesure désormais contre une version figée. Le **DCE** est
+retenu en priorité : c'est le chiffrage sur lequel les entreprises ont remis
+leurs offres, donc le seul auquel comparer le réalisé ait un sens contractuel. À
+défaut, la dernière version figée. À défaut encore, le chiffrage courant — et
+l'écran dit alors franchement qu'il n'a pas de référent stable, au lieu de
+laisser croire le contraire.
+
 ## Générer le CCTP depuis le DPGF
 
 Rédiger un CCTP revient, pour l'essentiel, à retrouver pour chaque ligne du
@@ -542,10 +590,10 @@ Marché initial, avenants cumulés, marché actuel, travaux réalisés, reste à
 réaliser, écart vis-à-vis de l'estimatif en euros et en pourcentage. L'alerte
 se déclenche au seuil choisi sur la mission, 5 % par défaut.
 
-La comparaison se fait avec l'**estimatif courant du chiffrage**. Le figeage
-par phase (point 10.4) existe au schéma mais n'est pas encore exploité : tant
-qu'il ne l'est pas, parler d'« estimatif initial » serait inexact, et l'écran
-le dit.
+La comparaison se fait avec la **version figée** retenue — le DCE en priorité.
+Tant qu'aucune version n'a été figée, elle se fait avec l'estimatif courant, et
+l'écran le dit franchement au lieu de laisser croire à une référence stable.
+Voir « Versions de chiffrage et comparatif ».
 
 Le tableau s'exporte en Excel, en deux feuilles — synthèse de l'opération et
 détail par lot — avec des nombres et non du texte, pour que le destinataire
@@ -636,7 +684,7 @@ celui d'esbuild ne concerne que le serveur de développement. Ils ont quand mêm
 src/
   domain/          TypeScript pur, aucune I/O, testable en millisecondes
     money/           Money, PrixUnitaire, arrondis
-    chiffrage/       cascade des coefficients, calcul de ligne, totaux, ratios
+    chiffrage/       coefficients, calcul de ligne, totaux, ratios, comparaison de versions
     situations/      avancement, cumuls, tableau financier, décompte de solde
     offres/          écarts vis-à-vis de l'estimatif, anomalies, comparatif
     texte/           format des pièces écrites, lecture d'un CCTP Word, appariement
@@ -646,7 +694,7 @@ src/
   application/     cas d'usage et ports
     ports/           SourcePrix et SourceNormes, en attendant d'éventuelles sources tierces
     missions/        création, modification, duplication
-    chiffrage/       recalcul persisté, arborescence, collage et sa correspondance
+    chiffrage/       recalcul persisté, arborescence, collage, versions figées
     prix/            base de prix personnelle, import de classeur
     import/          analyse d'un DPGF, sans entrée-sortie
     dce/             textes, cohérence, génération depuis les trames, assemblage

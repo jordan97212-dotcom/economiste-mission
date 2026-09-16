@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { formaterMontant } from '../../../../lib/format'
+import { formaterDate, formaterMontant } from '../../../../lib/format'
 import type { SuiviMission } from '../../../../application/suivi/service'
 import {
   actionAnnulerAttribution,
@@ -142,9 +142,21 @@ function SectionSynthese({ missionId, suivi }: { missionId: string; suivi: Suivi
 
       <div className="carte-corps" style={{ borderTop: '1px solid var(--color-filet)' }}>
         <p className="attenue" style={{ fontSize: 13, margin: 0, maxWidth: '78ch' }}>
-          {suivi.nbLotsAttribues} lot(s) attribué(s) sur {suivi.nbLots}. La comparaison se fait avec
-          l’estimatif courant du chiffrage : le figeage par phase existe au schéma mais n’est pas
-          encore exploité, donc parler d’« estimatif initial » serait inexact.
+          {suivi.nbLotsAttribues} lot(s) attribué(s) sur {suivi.nbLots}.{' '}
+          {suivi.referenceEstimatif.origine === 'version_figee' ? (
+            <>
+              La comparaison se fait avec la version figée «&nbsp;{suivi.referenceEstimatif.libelle}
+              &nbsp;», du {formaterDate(suivi.referenceEstimatif.figeLe)} : un référent qui ne bouge
+              plus, quoi qu’il arrive ensuite au bordereau.
+            </>
+          ) : (
+            <>
+              La comparaison se fait avec l’estimatif <strong>courant</strong> du chiffrage, faute de
+              version figée : il se déplace donc avec le bordereau, et parler d’« estimatif initial »
+              serait inexact. <a href={`/missions/${missionId}/versions`}>Figer une version</a>{' '}
+              donne un référent stable.
+            </>
+          )}
           {Number(suivi.retenueGarantieCumuleeHt) !== 0
             ? ` Retenue de garantie cumulée : ${formaterMontant(suivi.retenueGarantieCumuleeHt)}, à restituer à la levée des réserves.`
             : ''}
