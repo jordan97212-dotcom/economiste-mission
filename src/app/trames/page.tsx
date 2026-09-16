@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { contexte } from '../session'
 import { listerTrames, contenuDeTrame } from '../../application/trames/service'
 import { VARIABLES_DISPONIBLES } from '../../application/dce/service'
@@ -18,7 +19,8 @@ export default async function PageTrames() {
 
   return (
     <main className="contenu">
-      <div style={{ marginBottom: 22 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap', marginBottom: 22 }}>
+        <div>
         <p className="surtitre">Référentiel</p>
         <h1>Bibliothèque de trames</h1>
         <p className="attenue" style={{ fontSize: 14, marginTop: 4, maxWidth: '72ch' }}>
@@ -27,6 +29,10 @@ export default async function PageTrames() {
           comme texte imposé. Les variables entre doubles accolades sont remplacées par les données
           de la mission au moment de produire le document.
         </p>
+        </div>
+        <Link href="/trames/import" className="bouton bouton-primaire" style={{ alignSelf: 'flex-start' }}>
+          Importer un CCTP Word
+        </Link>
       </div>
 
       <Bibliotheque

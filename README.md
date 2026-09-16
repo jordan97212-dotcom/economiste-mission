@@ -23,6 +23,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 10 | Consultation des entreprises, analyse comparative des offres (phase 2) | Livré |
 | 11 | Attribution, avenants, situations de travaux, suivi financier (phase 3) | Livré |
 | 12 | Clôture : décompte général, réinjection des prix réels, archivage | Livré |
+| 13 | Import de CCTP Word dans la bibliothèque de trames | Livré |
 
 Les trois phases de la spécification sont couvertes, du cadrage à la clôture.
 On crée ou duplique une mission, on saisit son chiffrage au clavier ou par
@@ -301,6 +302,51 @@ application qui porte des noms de clients et des montants n'a pas à signaler
 chaque consultation au dehors, et elle reste lisible sur un serveur sans accès
 sortant.
 
+## Importer un CCTP existant
+
+Des années de CCTP rédigés n'ont pas à être ressaisies. L'application lit un
+document **Word**, le découpe en articles et vous laisse choisir lesquels
+rejoignent la bibliothèque de trames.
+
+### Word et pas PDF
+
+La structure d'un document Word est explicite : un titre porte un style de
+titre, une liste porte une numérotation. Un PDF ne rend qu'un texte à plat dont
+il faudrait deviner la hiérarchie, avec un résultat allant de correct à
+inexploitable selon le producteur du fichier. À contenu égal, l'import Word est
+fidèle là où l'import PDF serait approximatif — et sur des prescriptions
+techniques, l'approximation ne rend pas service.
+
+Un `.doc` d'avant 2007 se réenregistre depuis Word. Le refus le dit, au lieu de
+laisser l'économiste deviner.
+
+### Ce qu'est un article
+
+Un article est **le titre le moins profond qui porte directement du texte**. Ses
+sous-titres éventuels sont repliés dedans en `## `, parce qu'un article de CCTP
+a souvent des sous-points qui n'ont aucun sens séparés. Un titre de chapitre qui
+ne contient que d'autres titres n'est pas proposé : il ne porterait aucune
+prescription.
+
+La hiérarchie se lit d'abord dans les styles Word, dans n'importe quelle langue
+d'interface. À défaut, elle se lit dans une numérotation tapée à la main du type
+« 2.1.3 Voile béton » — la refuser reviendrait à ne rien savoir importer de la
+moitié des documents réels. La numérotation est retirée de l'intitulé : elle est
+déjà dans la hiérarchie.
+
+Le texte supprimé en révision reste dehors : on importe le document tel qu'il se
+lit, pas son historique.
+
+### Rien n'entre sans être coché
+
+L'analyse et l'écriture sont deux gestes séparés. Lire un fichier ne touche pas
+la base ; l'écran montre les articles trouvés, leur intitulé modifiable et le
+début de leur texte ; seuls les articles cochés rejoignent la bibliothèque. Un
+import de trente articles qu'on n'a pas relus ne vaut rien.
+
+Quand aucun titre n'est reconnu, le document n'est pas perdu : il part en une
+seule trame, à découper à la main, et l'écran explique pourquoi.
+
 ## Normes et DTU
 
 ### Ce que l'application ne fait pas, et pourquoi
@@ -519,7 +565,7 @@ src/
     chiffrage/       cascade des coefficients, calcul de ligne, totaux, ratios
     situations/      avancement, cumuls, tableau financier, décompte de solde
     offres/          écarts vis-à-vis de l'estimatif, anomalies, comparatif
-    texte/           format des pièces écrites, variables de mission
+    texte/           format des pièces écrites, lecture d'un CCTP Word
     coherence/       contrôle DPGF vers CCTP avant export
     normes/          détection des normes citées, contrôle de leur statut
     cloture/         décompte général, sélection des prix à réinjecter
@@ -547,7 +593,7 @@ src/
     sources-prix/    implémentation du port SourcePrix
     sources-normes/  implémentation du port SourceNormes
     excel/           lecture de classeurs, DPGF, tableau de suivi
-    docx/            pièces écrites, rapport d'offres, décompte, conversion PDF
+    docx/            pièces écrites, rapport d'offres, décompte, lecture d'un CCTP, PDF
   app/             Next.js : pages, actions serveur
   components/      grille de chiffrage, formulaire de mission
 prisma/
