@@ -34,7 +34,11 @@ en arrière-plan ralentit l'application et peut verrouiller des fichiers.
 Double-cliquer sur **`Demarrer.bat`**.
 
 Une fenêtre noire s'ouvre. **Le premier lancement prend dix à quinze minutes** :
-l'ordinateur construit l'application. Les fois suivantes, quelques secondes.
+l'ordinateur construit l'application, puis prépare sa base de données. Les fois
+suivantes, quelques secondes. Le navigateur s'ouvre tout seul une fois
+l'application prête — sur un disque lent, la fenêtre peut afficher « toujours
+en préparation » plusieurs fois avant d'y arriver : c'est normal, elle attend
+jusqu'à cinq minutes après la construction avant d'abandonner.
 
 Le navigateur s'ouvre tout seul sur l'application. Si Windows affiche un
 avertissement de sécurité sur un fichier téléchargé, choisir *Informations
@@ -123,6 +127,7 @@ Les trois causes les plus fréquentes :
 | --- | --- |
 | « Le démarrage a échoué » tout de suite | Docker Desktop n'est pas lancé, ou pas encore prêt. Attendre que la baleine se stabilise, relancer. |
 | Le navigateur affiche une page d'erreur | L'application démarre encore. Attendre une minute, recharger la page. |
+| La fenêtre dit que l'application met plus de temps que prévu | Elle continue probablement en arrière-plan. Ouvrez http://localhost:3000 pour vérifier, ou lancez `Diagnostic.bat`. |
 | Le port 3000 est déjà utilisé | Un autre programme l'occupe. Me le dire : le changer prend une ligne. |
 
 ## Mettre à jour
