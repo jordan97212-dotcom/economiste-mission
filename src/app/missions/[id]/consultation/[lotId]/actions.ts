@@ -1,13 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import type { StatutConsultation } from '@prisma/client'
 import { contexte } from '../../../../session'
 import {
   creerConsultation,
   modifierConsultation,
   supprimerConsultation,
 } from '../../../../../application/consultations/service'
+import { preparerCourrielConsultation } from '../../../../../application/consultations/courriel'
 import {
   enregistrerOffreGlobale,
   importerOffreDpgf,
@@ -18,6 +18,19 @@ import { enregistrerRapportBrouillon } from '../../../../../application/offres/r
 export interface EtatConsultation {
   readonly erreur?: string
   readonly succes?: string
+  /** Brouillon de courriel à ouvrir dans la messagerie, le cas échéant. */
+  readonly courriel?: {
+    readonly adresse: string
+    readonly corps: string
+    readonly objet: string
+    readonly anomalies: readonly string[]
+    /** Faux quand il n'y a pas de destinataire : la messagerie ne s'ouvre pas. */
+    readonly ouvrable: boolean
+    /** Change à chaque préparation : sans cela, deux clics de suite sur la même
+     *  entreprise rendraient un état identique et la messagerie ne s'ouvrirait
+     *  qu'une fois. */
+    readonly jeton: string
+  }
 }
 
 function lire(donnees: FormData, cle: string): string {
@@ -74,7 +87,7 @@ export async function actionModifierConsultation(
   const lotId = lire(donnees, 'lotId')
   try {
     await modifierConsultation(db, lire(donnees, 'id'), {
-      statut: lire(donnees, 'statut') as StatutConsultation,
+      desiste: lire(donnees, 'desiste') === 'oui',
       dateEnvoiDce: lireDateFormulaire(donnees, 'dateEnvoiDce'),
       dateLimiteRemise: lireDateFormulaire(donnees, 'dateLimiteRemise'),
       dateRelance: lireDateFormulaire(donnees, 'dateRelance'),
@@ -84,6 +97,36 @@ export async function actionModifierConsultation(
   }
   revalidatePath(chemin(missionId, lotId))
   return { succes: 'Consultation mise à jour.' }
+}
+
+export async function actionPreparerCourriel(
+  _precedent: EtatConsultation,
+  donnees: FormData,
+): Promise<EtatConsultation> {
+  const { db, utilisateur } = await contexte()
+  const missionId = lire(donnees, 'missionId')
+  const lotId = lire(donnees, 'lotId')
+  try {
+    const brouillon = await preparerCourrielConsultation(db, missionId, lire(donnees, 'id'), {
+      signature: utilisateur.nom,
+      // Aucun hébergement n'est encore configuré : le dossier voyage en pièce
+      // jointe, et le brouillon le dit. Le jour où un lien existe, il se pose ici.
+      lienDossier: null,
+    })
+    revalidatePath(chemin(missionId, lotId))
+    return {
+      courriel: {
+        adresse: brouillon.adresse,
+        corps: brouillon.corps,
+        objet: brouillon.objet,
+        anomalies: brouillon.anomalies,
+        ouvrable: brouillon.destinataires.length > 0,
+        jeton: `${Date.now()}`,
+      },
+    }
+  } catch (erreur) {
+    return { erreur: erreur instanceof Error ? erreur.message : 'Brouillon impossible.' }
+  }
 }
 
 export async function actionSupprimerConsultation(

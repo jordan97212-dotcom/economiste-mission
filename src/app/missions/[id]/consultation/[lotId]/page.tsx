@@ -75,6 +75,7 @@ export default async function PageConsultationLot({
           dateLimiteRemise: c.dateLimiteRemise ? c.dateLimiteRemise.toISOString().slice(0, 10) : null,
           dateRelance: c.dateRelance ? c.dateRelance.toISOString().slice(0, 10) : null,
           dateReceptionOffre: c.dateReceptionOffre ? c.dateReceptionOffre.toISOString().slice(0, 10) : null,
+          desiste: c.desisteLe !== null,
           nbOffres: c.nbOffres,
         }))}
         tableau={{

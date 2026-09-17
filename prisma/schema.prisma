@@ -103,14 +103,6 @@ enum TypePoste {
   OUVRAGE
 }
 
-enum StatutConsultation {
-  ENVOYEE
-  RELANCEE
-  OFFRE_RECUE
-  SANS_REPONSE
-  DESISTEMENT
-}
-
 enum TypeOffre {
   BASE
   VARIANTE
@@ -469,12 +461,16 @@ model Consultation {
   dateRelance       DateTime? @map("date_relance")
   dateReceptionOffre DateTime? @map("date_reception_offre")
 
-  statut StatutConsultation @default(ENVOYEE)
+  /// Désistement déclaré par l'économiste. C'est le seul état qui ne se déduit
+  /// pas : une entreprise qui renonce le dit par téléphone, et aucune date de la
+  /// base ne peut le deviner. Tout le reste du statut se calcule — voir
+  /// `src/domain/consultations/statut.ts`.
+  desisteLe DateTime? @map("desiste_le")
 
   offres Offre[]
 
   @@unique([lotId, entrepriseId])
-  @@index([missionId, statut])
+  @@index([missionId, dateLimiteRemise])
   @@map("consultation")
 }
 

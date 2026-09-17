@@ -221,7 +221,11 @@ describe('consultation et offres', () => {
     ).rejects.toThrow(/correspondance de lignes/)
   })
 
-  it('supprimer la dernière offre remet la consultation à « envoyée »', async () => {
+  it('supprimer la dernière offre rend son vrai statut à la consultation', async () => {
+    // Ce test attendait « envoyée » — sur une consultation dont le DCE n'était
+    // jamais parti. Le statut était alors rangé en base, et la suppression d'une
+    // offre le reposait à une valeur choisie d'avance, sans regarder les dates.
+    // Il se déduit maintenant : sans envoi, la consultation est « à envoyer ».
     const entrepriseId = await creerEntreprise(db(), { raisonSociale: 'Est Ouvrages' })
     const consultationId = await creerConsultation(db(), missionId, { lotId, entrepriseId })
     const offreId = await enregistrerOffreGlobale(db(), missionId, consultationId, {
@@ -233,8 +237,51 @@ describe('consultation et offres', () => {
 
     const consultations = await listerConsultationsDuLot(db(), missionId, lotId)
     const consultation = consultations.find((c) => c.id === consultationId)
-    expect(consultation?.statut).toBe('ENVOYEE')
+    expect(consultation?.statut).toBe('A_ENVOYER')
     expect(consultation?.nbOffres).toBe(0)
+    expect(consultation?.dateReceptionOffre).toBeNull()
+  })
+
+  it('une consultation dont la remise est close retombe sur « sans réponse »', async () => {
+    // Le cas qui comptait vraiment : l'offre retirée, le statut ne doit pas
+    // repartir sur « envoyée » alors que la date limite est passée depuis des
+    // semaines. L'économiste relancerait une entreprise hors délai.
+    const entrepriseId = await creerEntreprise(db(), { raisonSociale: 'Nord Bâtiment' })
+    const consultationId = await creerConsultation(db(), missionId, {
+      lotId,
+      entrepriseId,
+      dateEnvoiDce: new Date('2026-01-05'),
+      dateLimiteRemise: new Date('2026-02-02'),
+    })
+    const offreId = await enregistrerOffreGlobale(db(), missionId, consultationId, {
+      montantHt: '31000',
+      dateReception: new Date('2026-02-01'),
+    })
+
+    const avecOffre = await listerConsultationsDuLot(db(), missionId, lotId)
+    expect(avecOffre.find((c) => c.id === consultationId)?.statut).toBe('OFFRE_RECUE')
+
+    await supprimerOffre(db(), missionId, offreId)
+
+    const apres = await listerConsultationsDuLot(db(), missionId, lotId)
+    expect(apres.find((c) => c.id === consultationId)?.statut).toBe('SANS_REPONSE')
+  })
+
+  it('le désistement se déclare et se retire', async () => {
+    const entrepriseId = await creerEntreprise(db(), { raisonSociale: 'Sud Charpente' })
+    const consultationId = await creerConsultation(db(), missionId, {
+      lotId,
+      entrepriseId,
+      dateEnvoiDce: new Date('2026-01-05'),
+    })
+
+    await modifierConsultation(db(), consultationId, { desiste: true })
+    const desistee = await listerConsultationsDuLot(db(), missionId, lotId)
+    expect(desistee.find((c) => c.id === consultationId)?.statut).toBe('DESISTEMENT')
+
+    await modifierConsultation(db(), consultationId, { desiste: false })
+    const revenue = await listerConsultationsDuLot(db(), missionId, lotId)
+    expect(revenue.find((c) => c.id === consultationId)?.statut).toBe('ENVOYEE')
   })
 })
 

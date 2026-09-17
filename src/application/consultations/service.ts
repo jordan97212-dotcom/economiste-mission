@@ -1,5 +1,6 @@
-import type { PrismaClient, StatutConsultation as StatutPrisma } from '@prisma/client'
+import type { PrismaClient } from '@prisma/client'
 import { difference, journaliser } from '../audit/service'
+import { statutDe, type StatutConsultation } from '../../domain/consultations/statut'
 
 /**
  * Consultation des entreprises — SPEC_APP_ECONOMISTE.md §5.5.
@@ -32,11 +33,13 @@ export interface ConsultationDTO {
   readonly id: string
   readonly entrepriseId: string
   readonly entrepriseNom: string
-  readonly statut: StatutPrisma
+  /** Déduit des dates et des offres, jamais lu en base — voir le domaine. */
+  readonly statut: StatutConsultation
   readonly dateEnvoiDce: Date | null
   readonly dateLimiteRemise: Date | null
   readonly dateRelance: Date | null
   readonly dateReceptionOffre: Date | null
+  readonly desisteLe: Date | null
   readonly nbOffres: number
 }
 
@@ -53,15 +56,30 @@ export async function listerConsultationsDuLot(
     orderBy: { entreprise: { raisonSociale: 'asc' } },
   })
 
+  // Un seul instant de référence pour toute la liste : deux lignes calculées à
+  // quelques millisecondes d'écart pourraient tomber de part et d'autre de
+  // minuit, et le tableau afficherait deux vérités le soir d'une date limite.
+  const maintenant = new Date()
+
   return consultations.map((c) => ({
     id: c.id,
     entrepriseId: c.entrepriseId,
     entrepriseNom: c.entreprise.raisonSociale,
-    statut: c.statut,
+    statut: statutDe(
+      {
+        dateEnvoiDce: c.dateEnvoiDce,
+        dateLimiteRemise: c.dateLimiteRemise,
+        dateRelance: c.dateRelance,
+        nbOffres: c._count.offres,
+        desiste: c.desisteLe !== null,
+      },
+      maintenant,
+    ),
     dateEnvoiDce: c.dateEnvoiDce,
     dateLimiteRemise: c.dateLimiteRemise,
     dateRelance: c.dateRelance,
     dateReceptionOffre: c.dateReceptionOffre,
+    desisteLe: c.desisteLe,
     nbOffres: c._count.offres,
   }))
 }
@@ -94,7 +112,6 @@ export async function creerConsultation(
       entrepriseId: entree.entrepriseId,
       dateEnvoiDce: entree.dateEnvoiDce ?? null,
       dateLimiteRemise: entree.dateLimiteRemise ?? null,
-      statut: 'ENVOYEE',
     },
     select: { id: true },
   })
@@ -113,7 +130,7 @@ export async function modifierConsultation(
   client: PrismaClient,
   id: string,
   entree: {
-    readonly statut?: StatutPrisma
+    readonly desiste?: boolean
     readonly dateEnvoiDce?: Date | null
     readonly dateLimiteRemise?: Date | null
     readonly dateRelance?: Date | null
@@ -125,7 +142,12 @@ export async function modifierConsultation(
   const apres = await client.consultation.update({
     where: { id },
     data: {
-      ...(entree.statut !== undefined ? { statut: entree.statut } : {}),
+      // Le désistement est le seul état déclaré : on horodate la déclaration
+      // plutôt que de retenir un simple oui/non, pour savoir quand elle est
+      // tombée en relisant le suivi six mois plus tard.
+      ...(entree.desiste !== undefined
+        ? { desisteLe: entree.desiste ? (avant.desisteLe ?? new Date()) : null }
+        : {}),
       ...(entree.dateEnvoiDce !== undefined ? { dateEnvoiDce: entree.dateEnvoiDce } : {}),
       ...(entree.dateLimiteRemise !== undefined ? { dateLimiteRemise: entree.dateLimiteRemise } : {}),
       ...(entree.dateRelance !== undefined ? { dateRelance: entree.dateRelance } : {}),

@@ -247,6 +247,11 @@ Sur cet écran, pour ce lot :
 
 - **Ajouter les entreprises consultées**, prises dans votre répertoire, avec
   dates d'envoi du DCE, de limite de remise, de relance.
+- **Préparer le courriel** — le bouton ouvre votre messagerie habituelle avec le
+  destinataire, l'objet et le corps déjà écrits : le lot, l'opération, la date
+  limite de remise, votre signature. Vous relisez, vous joignez le dossier, vous
+  envoyez. L'application n'expédie rien elle-même : le message part de votre
+  adresse, avec votre accusé de réception.
 - **Télécharger le dossier de consultation** — une archive contenant le CCTP, le
   bordereau *à remplir* (jamais vos prix), les pièces qui concernent ce lot
   rangées par nature, et un **bordereau des pièces** qui liste tout avec les
@@ -255,6 +260,24 @@ Sur cet écran, pour ce lot :
 - **Saisir les offres reçues**, de deux façons : un montant global, ou le détail
   ligne à ligne quand l'entreprise a rendu le bordereau rempli.
 - **Le tableau comparatif**, qui se construit tout seul.
+
+**Le statut se met à jour tout seul.** Vous ne le saisissez pas : il se déduit
+de ce qui est enregistré.
+
+| Statut | Quand |
+|---|---|
+| **À envoyer** | L'entreprise est dans la liste, le DCE n'est pas parti |
+| **DCE envoyé** | Une date d'envoi est posée — le bouton « Préparer le courriel » la pose |
+| **Relancée** | Une date de relance est saisie |
+| **Offre reçue** | Au moins une offre est enregistrée |
+| **Sans réponse** | La date limite est passée, rien n'est arrivé |
+| **Désistement** | Vous l'avez noté — c'est le seul que l'application ne peut pas deviner |
+
+Deux conséquences utiles. La bascule en « sans réponse » se fait **le lendemain**
+de la date limite : une remise attendue le 15 court jusqu'au soir du 15, vous ne
+relancerez pas une entreprise encore dans les temps. Et si vous retirez une
+offre, le statut retrouve celui que les dates commandent, au lieu de repartir sur
+une valeur choisie d'avance.
 
 ![L’écran de consultation d’un lot. Le bouton entouré produit l’archive à envoyer aux entreprises.](docs/captures/08-consultation.png)
 

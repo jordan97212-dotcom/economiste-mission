@@ -15,17 +15,34 @@ import {
   actionEnregistrerOffreGlobale,
   actionImporterOffreExcel,
   actionModifierConsultation,
+  actionPreparerCourriel,
   actionSupprimerConsultation,
   actionSupprimerOffre,
   type EtatConsultation,
 } from './actions'
 
+/**
+ * Le statut n'est plus saisi : il se déduit des dates et des offres. Ces
+ * libellés ne servent donc qu'à l'affichage — voir
+ * `src/domain/consultations/statut.ts`.
+ */
 const LIBELLES_STATUT_CONSULTATION: Record<string, string> = {
-  ENVOYEE: 'Envoyée',
+  A_ENVOYER: 'À envoyer',
+  ENVOYEE: 'DCE envoyé',
   RELANCEE: 'Relancée',
   OFFRE_RECUE: 'Offre reçue',
   SANS_REPONSE: 'Sans réponse',
   DESISTEMENT: 'Désistement',
+}
+
+/** Une pastille par statut, pour repérer d'un coup d'œil ce qui traîne. */
+const TON_STATUT: Record<string, string> = {
+  A_ENVOYER: 'etiquette-alerte',
+  ENVOYEE: 'etiquette',
+  RELANCEE: 'etiquette-alerte',
+  OFFRE_RECUE: 'etiquette-accent',
+  SANS_REPONSE: 'etiquette-alerte',
+  DESISTEMENT: 'etiquette',
 }
 
 export interface EntrepriseOption {
@@ -42,6 +59,7 @@ export interface ConsultationAffichee {
   readonly dateLimiteRemise: string | null
   readonly dateRelance: string | null
   readonly dateReceptionOffre: string | null
+  readonly desiste: boolean
   readonly nbOffres: number
 }
 
@@ -216,26 +234,60 @@ function LigneConsultation({
 }) {
   const [etat, modifier] = useActionState<EtatConsultation, FormData>(actionModifierConsultation, {})
   const [, supprimer] = useActionState<EtatConsultation, FormData>(actionSupprimerConsultation, {})
+  const [courriel, preparer] = useActionState<EtatConsultation, FormData>(actionPreparerCourriel, {})
+
+  // La messagerie s'ouvre depuis le navigateur, pas depuis le serveur : celui-ci
+  // ne fait que composer l'adresse. Le jeton change à chaque préparation, sans
+  // quoi deux clics de suite rendraient un état identique et React ne
+  // rejouerait pas l'effet.
+  const jeton = courriel.courriel?.jeton
+  const adresse = courriel.courriel?.adresse
+  const ouvrable = courriel.courriel?.ouvrable ?? false
+  useEffect(() => {
+    // Sans destinataire, on n'ouvre rien : la messagerie afficherait un message
+    // vide et l'anomalie affichée sous le bouton passerait inaperçue.
+    if (!jeton || !adresse || !ouvrable) return
+    window.location.href = adresse
+  }, [jeton, adresse, ouvrable])
 
   return (
     <tr>
       <td style={{ fontWeight: 500 }}>{consultation.entrepriseNom}</td>
       <td>
-        <form action={modifier} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <span className={TON_STATUT[consultation.statut] ?? 'etiquette'}>
+          {LIBELLES_STATUT_CONSULTATION[consultation.statut] ?? consultation.statut}
+        </span>
+        <form action={preparer} style={{ marginTop: 6 }}>
+          <input type="hidden" name="missionId" value={missionId} />
+          <input type="hidden" name="lotId" value={lotId} />
+          <input type="hidden" name="id" value={consultation.id} />
+          <button type="submit" className="bouton bouton-discret">
+            {consultation.dateEnvoiDce ? 'Relancer par courriel' : 'Préparer le courriel'}
+          </button>
+        </form>
+        {courriel.courriel?.anomalies.length ? (
+          <ul className="message-avertissement" style={{ marginTop: 6, fontSize: 12.5, paddingLeft: 26 }}>
+            {courriel.courriel.anomalies.map((anomalie) => (
+              <li key={anomalie}>{anomalie}</li>
+            ))}
+          </ul>
+        ) : null}
+        <form action={modifier} style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6 }}>
           <input type="hidden" name="missionId" value={missionId} />
           <input type="hidden" name="lotId" value={lotId} />
           <input type="hidden" name="id" value={consultation.id} />
           <input type="hidden" name="dateEnvoiDce" value={consultation.dateEnvoiDce ?? ''} />
           <input type="hidden" name="dateLimiteRemise" value={consultation.dateLimiteRemise ?? ''} />
           <input type="hidden" name="dateRelance" value={consultation.dateRelance ?? ''} />
-          <select name="statut" defaultValue={consultation.statut} aria-label={`Statut de ${consultation.entrepriseNom}`} style={{ width: 'auto', minWidth: 128 }}>
-            {Object.entries(LIBELLES_STATUT_CONSULTATION).map(([valeur, libelle]) => (
-              <option key={valeur} value={valeur}>{libelle}</option>
-            ))}
-          </select>
-          <button type="submit" className="bouton bouton-discret">Noter</button>
+          {/* Le désistement est le seul état qui se déclare : rien dans les dates
+              ne peut deviner un coup de téléphone. */}
+          <input type="hidden" name="desiste" value={consultation.desiste ? 'non' : 'oui'} />
+          <button type="submit" className="bouton bouton-discret">
+            {consultation.desiste ? 'Annuler le désistement' : 'Noter un désistement'}
+          </button>
         </form>
         {etat.erreur ? <p className="message-erreur" style={{ marginTop: 6 }} role="alert">{etat.erreur}</p> : null}
+        {courriel.erreur ? <p className="message-erreur" style={{ marginTop: 6 }} role="alert">{courriel.erreur}</p> : null}
       </td>
       <td className="mono attenue" style={{ fontSize: 12.5 }}>{consultation.dateEnvoiDce ?? '—'}</td>
       <td className="mono attenue" style={{ fontSize: 12.5 }}>{consultation.dateLimiteRemise ?? '—'}</td>

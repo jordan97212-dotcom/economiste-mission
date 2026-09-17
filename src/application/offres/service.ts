@@ -93,7 +93,7 @@ export async function enregistrerOffreGlobale(
 
   await client.consultation.update({
     where: { id: consultationId },
-    data: { statut: 'OFFRE_RECUE', dateReceptionOffre: entree.dateReception },
+    data: { dateReceptionOffre: entree.dateReception },
   })
 
   await journaliser(client, {
@@ -234,7 +234,7 @@ export async function importerOffreDpgf(
 
   await client.consultation.update({
     where: { id: consultationId },
-    data: { statut: 'OFFRE_RECUE', dateReceptionOffre: metadonnees.dateReception },
+    data: { dateReceptionOffre: metadonnees.dateReception },
   })
 
   // Une entrée de synthèse, comme pour un import de DPGF : le détail ligne à
@@ -268,11 +268,14 @@ export async function supprimerOffre(client: PrismaClient, missionId: string, of
 
   await client.offre.delete({ where: { id: offreId } })
 
+  // Plus d'offre : la date de réception n'a plus d'objet. Le statut, lui, n'est
+  // plus à remettre — il se déduit, et retombe de lui-même sur l'échéance de
+  // remise au lieu de reposer « envoyée » sur une consultation close.
   const offresRestantes = await client.offre.count({ where: { consultationId: offre.consultationId } })
   if (offresRestantes === 0) {
     await client.consultation.update({
       where: { id: offre.consultationId },
-      data: { statut: 'ENVOYEE', dateReceptionOffre: null },
+      data: { dateReceptionOffre: null },
     })
   }
 
