@@ -10,12 +10,25 @@ if errorlevel 1 echo    NON : lancez Docker Desktop, attendez que la baleine se 
 
 echo.
 echo   === Etat des deux services ===
-docker compose ps
+rem « -a » montre aussi les conteneurs arretes. Un « Restarting » ou un
+rem « Exited » ici explique a lui seul une page vide dans le navigateur :
+rem Docker garde le port ouvert pendant que l application, derriere, redemarre
+rem en boucle. C est exactement ce que Chrome appelle ERR_EMPTY_RESPONSE.
+docker compose ps -a
+
+echo.
+echo   === Qui ecoute sur le port 3000 ? ===
+netstat -ano | findstr ":3000" | findstr "LISTENING"
+if errorlevel 1 echo    Personne n ecoute sur le port 3000.
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":3000" ^| findstr "LISTENING"') do (
+  echo    Processus %%P :
+  tasklist /fi "PID eq %%P" /nh
+)
 
 echo.
 echo   === L application repond-elle ? ===
 curl -s -o nul -w "   Reponse HTTP %%{http_code} sur http://localhost:3000" http://localhost:3000
-if errorlevel 1 echo    Aucune reponse sur le port 3000.
+if errorlevel 1 echo    Aucune reponse exploitable ^(voir le code curl ci-dessus^).
 echo.
 
 echo.

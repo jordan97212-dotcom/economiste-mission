@@ -10,6 +10,12 @@ echo   l application, prepare la base de donnees et verifie sa nomenclature.
 echo   Les lancements suivants prennent quelques secondes.
 echo.
 
+rem Le dossier des pieces est partage avec le conteneur. On le cree ici plutot
+rem que de laisser Docker s en charger : selon le poste et les dossiers
+rem partages de Docker Desktop, il n y parvient pas toujours, et le conteneur
+rem meurt alors au demarrage en laissant le port ouvert sur rien.
+if not exist "donnees\pieces" mkdir "donnees\pieces" 2>nul
+
 docker compose up -d --build
 if errorlevel 1 goto erreur
 
