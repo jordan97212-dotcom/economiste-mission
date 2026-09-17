@@ -32,10 +32,16 @@ goto attendre
 
 :pret
 echo   Pret.
-start "" http://localhost:3000
+call :ouvrirNavigateur
 echo.
-echo   L application tourne dans votre navigateur.
-echo   Vous pouvez fermer cette fenetre : elle continue de tourner.
+echo   L application tourne.
+echo.
+echo   Si aucune fenetre de navigateur ne s est ouverte, ouvrez le vous-meme
+echo   et tapez cette adresse ^(elle ne change jamais^) :
+echo.
+echo        http://localhost:3000
+echo.
+echo   Vous pouvez fermer cette fenetre : l application continue de tourner.
 echo   Pour l arreter, double-cliquez sur Arreter.bat
 echo.
 pause
@@ -50,7 +56,7 @@ call :montrerJournal 30
 echo.
 echo   J ouvre quand meme le navigateur sur http://localhost:3000 : si elle
 echo   finit de se preparer, la page apparaitra en rechargeant.
-start "" http://localhost:3000
+call :ouvrirNavigateur
 echo.
 echo   Si la page reste introuvable, lancez Diagnostic.bat et envoyez la
 echo   fenetre entiere.
@@ -97,4 +103,22 @@ rem l afficher ici evite d avoir a lancer Diagnostic.bat pour la voir.
 rem --------------------------------------------------------------------
 :montrerJournal
 docker compose logs --tail %1 app 2>nul
+goto :eof
+
+rem --------------------------------------------------------------------
+rem Ouvrir le navigateur par defaut. « start » y suffit presque toujours,
+rem mais pas partout : session ouverte en administrateur, association du
+rem protocole http absente, image d entreprise verrouillee. On essaie donc
+rem les trois voies connues plutot que d abandonner a la premiere.
+rem
+rem explorer.exe renvoie 1 meme quand il reussit : c est pour cela qu il
+rem vient en dernier, et qu on ne teste pas son code de retour.
+rem --------------------------------------------------------------------
+:ouvrirNavigateur
+start "" "http://localhost:3000"
+if not errorlevel 1 goto :eof
+echo   ^(la methode habituelle n a pas repondu, j en essaie une autre^)
+rundll32 url.dll,FileProtocolHandler "http://localhost:3000"
+if not errorlevel 1 goto :eof
+explorer "http://localhost:3000"
 goto :eof

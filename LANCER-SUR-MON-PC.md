@@ -40,7 +40,8 @@ l'application prête — sur un disque lent, la fenêtre peut afficher « toujou
 en préparation » plusieurs fois avant d'y arriver : c'est normal, elle attend
 jusqu'à cinq minutes après la construction avant d'abandonner.
 
-Le navigateur s'ouvre tout seul sur l'application. Si Windows affiche un
+Le navigateur s'ouvre tout seul sur l'application — et s'il ne s'ouvre pas, la
+fenêtre noire affiche l'adresse à taper : `http://localhost:3000`. Si Windows affiche un
 avertissement de sécurité sur un fichier téléchargé, choisir *Informations
 complémentaires* puis *Exécuter quand même*.
 
@@ -134,6 +135,7 @@ Les trois causes les plus fréquentes :
 | « Le démarrage a échoué » tout de suite | Docker Desktop n'est pas lancé, ou pas encore prêt. Attendre que la baleine se stabilise, relancer. |
 | Le navigateur affiche une page d'erreur | L'application démarre encore. Attendre une minute, recharger la page. |
 | La fenêtre dit que l'application met plus de temps que prévu | Elle continue probablement en arrière-plan. Ouvrez http://localhost:3000 pour vérifier, ou lancez `Diagnostic.bat`. |
+| La fenêtre dit « Pret. » mais aucun navigateur ne s'ouvre | L'application tourne : ouvrez votre navigateur et tapez `http://localhost:3000`. Le script essaie trois façons d'ouvrir le navigateur ; si aucune ne marche, c'est l'association du protocole `http` sous Windows qui est en cause, pas l'application. Mettez l'adresse en favori. |
 | Le port 3000 est déjà utilisé | Un autre programme l'occupe. Me le dire : le changer prend une ligne. |
 
 ## Mettre à jour
