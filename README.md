@@ -538,11 +538,25 @@ l'attribution d'un marché qui n'a pas été mis en concurrence. Les variantes e
 les options figurent au tableau — elles comptent dans la décision — mais hors
 classement, et l'écran le dit.
 
-Deux conséquences sur les alertes. L'écart d'une **option** vis-à-vis de
+Trois conséquences sur les alertes. L'écart d'une **option** vis-à-vis de
 l'estimatif n'est pas affiché : une option de 2 000 € face à un estimatif de
 100 000 € serait signalée « anormalement basse » à chaque fois, ce qui
 apprendrait à ignorer l'alerte. Une **variante**, qui couvre le même périmètre,
-reste comparée normalement.
+reste comparée à l'estimatif normalement.
+
+Surtout, **la médiane se calcule par famille**. Le contrôle « offre inférieure à
+la médiane des offres reçues » mêlait bases et variantes ; or une variante est
+moins chère par construction, c'est sa raison d'être. Trois variantes bon marché
+tiraient donc la médiane assez bas pour qu'une base réellement sous-évaluée n'y
+paraisse plus anormale. Chaque offre se compare désormais à la médiane de sa
+propre famille, le minimum de trois offres s'appréciant famille par famille, et
+le message nomme laquelle : « à la médiane des offres de base ».
+
+Enfin, le **brouillon de rapport** refaisait son propre classement au lieu de
+reprendre celui du tableau — il annonçait donc la variante comme l'offre la plus
+basse, en contradiction avec le tableau de la même page. Il s'appuie maintenant
+sur le classement établi, une seule vérité, et signale les offres qui n'y
+figurent pas.
 
 Enfin, puisqu'une même entreprise peut remettre plusieurs offres, son nom seul
 ne suffit plus à les distinguer : colonnes du comparatif et messages d'écart

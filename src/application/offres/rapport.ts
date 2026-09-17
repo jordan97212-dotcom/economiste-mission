@@ -67,29 +67,46 @@ export function genererBrouillonAutomatique(tableau: TableauComparatif): string 
     `${tableau.colonnes.length} offre(s) reçue(s), pour un estimatif de ${Money.formater(tableau.montantEstimeHt)} HT.`,
   )
 
-  const conformesTriees = tableau.colonnes
-    .filter((c) => c.conforme)
-    .sort((a, b) => Money.comparer(a.montantNetHt, b.montantNetHt))
-
   lignes.push('')
   lignes.push('## Offres reçues')
   for (const colonne of tableau.colonnes) {
-    const ecart =
-      colonne.ecart.pourcent !== null
+    // Une option chiffre un complément : son écart vis-à-vis de l'estimatif
+    // entier ne veut rien dire, et l'écrire tromperait le lecteur.
+    const ecart = !colonne.ecartComparable
+      ? 'écart sans objet pour une option'
+      : colonne.ecart.pourcent !== null
         ? `${colonne.ecart.pourcent.greaterThan(0) ? '+' : ''}${colonne.ecart.pourcent.toFixed(2)} % vs estimatif`
         : 'écart non calculable'
+
+    // La nature accompagne le nom : une même entreprise peut remettre une base
+    // et deux variantes, et six lignes au même nom ne s'expliqueraient pas.
+    const nature =
+      colonne.type === 'BASE'
+        ? ''
+        : ` — ${colonne.type === 'VARIANTE' ? 'variante' : 'option'}${colonne.libelle ? ` « ${colonne.libelle} »` : ''}`
+
     lignes.push(
-      `- ${colonne.entrepriseNom} : ${Money.formater(colonne.montantNetHt)} HT (${ecart})${colonne.conforme ? '' : ' — offre non conforme'}`,
+      `- ${colonne.entrepriseNom}${nature} : ${Money.formater(colonne.montantNetHt)} HT (${ecart})${colonne.conforme ? '' : ' — offre non conforme'}`,
     )
   }
 
-  if (conformesTriees.length > 0) {
+  // Le classement vient du tableau, qui l'a déjà établi : le recalculer ici
+  // reviendrait à tenir deux vérités, et c'est la seconde qui partirait au
+  // maître d'ouvrage.
+  const gagnante = tableau.colonnes.find((c) => c.moinsDisante)
+  if (gagnante) {
     lignes.push('')
     lignes.push('## Mieux-disant')
-    const gagnante = conformesTriees[0]!
     lignes.push(
-      `${gagnante.entrepriseNom} présente le montant le plus bas parmi les offres conformes, à ${Money.formater(gagnante.montantNetHt)} HT.`,
+      `${gagnante.entrepriseNom} présente le montant le plus bas parmi les offres de base conformes, à ${Money.formater(gagnante.montantNetHt)} HT.`,
     )
+
+    const horsClassement = tableau.colonnes.filter((c) => c.conforme && !c.classee)
+    if (horsClassement.length > 0) {
+      lignes.push(
+        `${horsClassement.length} offre(s) ne figurent pas au classement : une variante propose une autre façon de faire, une option chiffre un complément. Elles se jugent à part.`,
+      )
+    }
   }
 
   const anomalies = [

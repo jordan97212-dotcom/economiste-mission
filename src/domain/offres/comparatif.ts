@@ -105,6 +105,19 @@ export interface TableauComparatif {
   readonly anomaliesGlobales: readonly Anomalie<string>[]
 }
 
+/**
+ * Famille de comparaison d'une offre.
+ *
+ * Une variante ne se compare qu'aux variantes : elle est moins chère par
+ * construction, et la mêler aux bases tirerait leur médiane vers le bas, au
+ * risque de masquer une base réellement sous-évaluée.
+ */
+function familleDe(offre: OffreAComparer): { cle: string; libelle: string } {
+  return offre.type === 'VARIANTE'
+    ? { cle: 'VARIANTE', libelle: 'variantes reçues' }
+    : { cle: 'BASE', libelle: 'offres de base' }
+}
+
 function montantNet(offre: OffreAComparer): MoneyValue {
   return Money.soustraire(offre.montantHt, offre.remiseGlobaleHt)
 }
@@ -132,7 +145,7 @@ export function construireComparatif(
   const anomaliesGlobales = detecterAnomalies(
     offres
       .filter((o) => o.type !== 'OPTION')
-      .map((o) => ({ reference: o.offreId, montantHt: montantNet(o) })),
+      .map((o) => ({ reference: o.offreId, montantHt: montantNet(o), famille: familleDe(o) })),
     montantEstimeHt,
     seuils,
   )
@@ -170,7 +183,11 @@ export function construireComparatif(
       .filter(({ offre }) => offre.type !== 'OPTION')
 
     const anomalies = detecterAnomalies(
-      offresAvecCetPoste.map(({ offre, ligne }) => ({ reference: offre.offreId, montantHt: ligne.montantHt })),
+      offresAvecCetPoste.map(({ offre, ligne }) => ({
+        reference: offre.offreId,
+        montantHt: ligne.montantHt,
+        famille: familleDe(offre),
+      })),
       poste.montantEstimeHt,
       seuils,
     )

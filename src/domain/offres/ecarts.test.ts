@@ -133,3 +133,88 @@ describe('mieux-disant', () => {
     expect(moinsDisante([])).toBeNull()
   })
 })
+
+describe('médiane par famille d’offres', () => {
+  const BASE = { cle: 'BASE', libelle: 'offres de base' }
+  const VARIANTE = { cle: 'VARIANTE', libelle: 'variantes reçues' }
+
+  const offre = (
+    reference: string,
+    montant: string,
+    famille?: { cle: string; libelle: string },
+  ) => ({ reference, montantHt: euros(montant), ...(famille ? { famille } : {}) })
+
+  it('ne laisse pas des variantes tirer la médiane des bases vers le bas', () => {
+    // Trois bases serrées autour de 100 000 € et trois variantes bien moins
+    // chères. Sans familles, la médiane de l'ensemble tomberait assez bas pour
+    // qu'aucune base ne paraisse anormale.
+    const anomalies = detecterAnomalies(
+      [
+        offre('base-basse', '70000', BASE),
+        offre('base-a', '100000', BASE),
+        offre('base-b', '102000', BASE),
+        offre('var-a', '60000', VARIANTE),
+        offre('var-b', '61000', VARIANTE),
+        offre('var-c', '62000', VARIANTE),
+      ],
+      euros('100000'),
+    )
+    const surMediane = anomalies.filter((a) => a.motif === 'basse_vs_offres')
+    expect(surMediane.map((a) => a.reference)).toEqual(['base-basse'])
+  })
+
+  it('compare une variante aux variantes, pas aux bases', () => {
+    const anomalies = detecterAnomalies(
+      [
+        offre('base-a', '100000', BASE),
+        offre('base-b', '101000', BASE),
+        offre('base-c', '102000', BASE),
+        offre('var-basse', '40000', VARIANTE),
+        offre('var-a', '60000', VARIANTE),
+        offre('var-b', '61000', VARIANTE),
+      ],
+      euros('100000'),
+    )
+    const surMediane = anomalies.filter((a) => a.motif === 'basse_vs_offres')
+    expect(surMediane.map((a) => a.reference)).toEqual(['var-basse'])
+  })
+
+  it('nomme la famille dans le message, pas « les offres reçues »', () => {
+    const anomalies = detecterAnomalies(
+      [
+        offre('base-basse', '70000', BASE),
+        offre('base-a', '100000', BASE),
+        offre('base-b', '102000', BASE),
+      ],
+      euros('100000'),
+    )
+    const message = anomalies.find((a) => a.motif === 'basse_vs_offres')?.message
+    expect(message).toContain('à la médiane des offres de base')
+  })
+
+  it('n’applique pas le contrôle à une famille de moins de trois offres', () => {
+    // Le minimum de trois s'apprécie famille par famille : deux variantes ne
+    // font pas une médiane, même si l'ensemble en compte cinq.
+    const anomalies = detecterAnomalies(
+      [
+        offre('base-a', '100000', BASE),
+        offre('base-b', '101000', BASE),
+        offre('base-c', '102000', BASE),
+        offre('var-a', '30000', VARIANTE),
+        offre('var-b', '60000', VARIANTE),
+      ],
+      euros('100000'),
+    )
+    expect(anomalies.filter((a) => a.motif === 'basse_vs_offres')).toEqual([])
+  })
+
+  it('garde l’ancien comportement quand aucune famille n’est donnée', () => {
+    const anomalies = detecterAnomalies(
+      [offre('a', '50000'), offre('b', '100000'), offre('c', '102000')],
+      euros('100000'),
+    )
+    const surMediane = anomalies.find((a) => a.motif === 'basse_vs_offres')
+    expect(surMediane?.reference).toBe('a')
+    expect(surMediane?.message).toContain('à la médiane des offres reçues')
+  })
+})

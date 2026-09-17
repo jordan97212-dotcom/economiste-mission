@@ -102,6 +102,36 @@ describe('type d’offre : base, variante, option — point 10.8', () => {
     expect(tableau.colonnes[0]?.libelle).toBe(null)
   })
 
+  it('ne laisse pas des variantes masquer une base sous-évaluée', () => {
+    // Sans séparation des familles, la médiane de l'ensemble tomberait entre
+    // les variantes et les bases, et la base à 7 000 € — trente pour cent sous
+    // ses concurrentes — ne serait plus signalée.
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('base-basse', 'Entreprise A', '7000'),
+      offreGlobale('base-b', 'Entreprise B', '15000'),
+      offreGlobale('base-c', 'Entreprise C', '15300'),
+      offreGlobale('var-a', 'Entreprise D', '6000', { type: 'VARIANTE' }),
+      offreGlobale('var-b', 'Entreprise E', '6100', { type: 'VARIANTE' }),
+      offreGlobale('var-c', 'Entreprise F', '6200', { type: 'VARIANTE' }),
+    ])
+    const surMediane = tableau.anomaliesGlobales.filter((a) => a.motif === 'basse_vs_offres')
+    expect(surMediane.map((a) => a.reference)).toEqual(['base-basse'])
+  })
+
+  it('compare la médiane des variantes aux seules variantes', () => {
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('base-a', 'Entreprise A', '15000'),
+      offreGlobale('base-b', 'Entreprise B', '15200'),
+      offreGlobale('base-c', 'Entreprise C', '15300'),
+      offreGlobale('var-basse', 'Entreprise D', '4000', { type: 'VARIANTE' }),
+      offreGlobale('var-a', 'Entreprise E', '9000', { type: 'VARIANTE' }),
+      offreGlobale('var-b', 'Entreprise F', '9100', { type: 'VARIANTE' }),
+    ])
+    const surMediane = tableau.anomaliesGlobales.filter((a) => a.motif === 'basse_vs_offres')
+    expect(surMediane.map((a) => a.reference)).toEqual(['var-basse'])
+    expect(surMediane[0]?.message).toContain('variantes reçues')
+  })
+
   it('écarte une option de la détection d’anomalie ligne à ligne', () => {
     const detaillee = (id: string, montant: string, type: OffreAComparer['type']) =>
       offreGlobale(id, 'Entreprise', '0', {

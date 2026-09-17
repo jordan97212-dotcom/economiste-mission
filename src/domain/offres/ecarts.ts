@@ -24,9 +24,31 @@ export function ecartVsEstimatif(offreHt: MoneyValue, estimatifHt: MoneyValue): 
   return { montantHt, pourcent }
 }
 
+/**
+ * Famille d'offres comparables entre elles.
+ *
+ * `cle` sert au regroupement, `libelle` au message : « inférieure de 20 % à la
+ * médiane des offres de base » dit quelque chose, « à la médiane des offres
+ * reçues » beaucoup moins quand ces offres ne répondent pas au même dossier.
+ */
+export interface FamilleOffres {
+  readonly cle: string
+  readonly libelle: string
+}
+
 export interface OffreComparee<T = unknown> {
   readonly reference: T
   readonly montantHt: MoneyValue
+  /**
+   * Famille à laquelle comparer cette offre. La médiane se calcule par famille :
+   * une variante est moins chère par construction — c'est sa raison d'être — et
+   * la mêler aux offres de base tirerait leur médiane vers le bas, jusqu'à
+   * masquer une base réellement sous-évaluée.
+   *
+   * Absente, toutes les offres forment une seule famille : l'ancien
+   * comportement, conservé pour les appels qui n'ont rien à distinguer.
+   */
+  readonly famille?: FamilleOffres
 }
 
 export type MotifAnomalie = 'basse_vs_estimatif' | 'basse_vs_offres' | 'haute_vs_estimatif'
@@ -74,8 +96,24 @@ export function detecterAnomalies<T>(
   seuils: SeuilsAnomalie = {},
 ): Anomalie<T>[] {
   const s = { ...SEUILS_PAR_DEFAUT, ...seuils }
-  const mediane = medianne(offres.map((o) => o.montantHt))
   const anomalies: Anomalie<T>[] = []
+
+  // Une médiane par famille, et son effectif : trois offres restent le minimum
+  // pour qu'une médiane dise quelque chose, et ce minimum s'apprécie famille
+  // par famille.
+  const parFamille = new Map<string, OffreComparee<T>[]>()
+  for (const offre of offres) {
+    const cle = offre.famille?.cle ?? ''
+    const liste = parFamille.get(cle) ?? []
+    liste.push(offre)
+    parFamille.set(cle, liste)
+  }
+  const medianes = new Map(
+    [...parFamille].map(([cle, liste]) => [
+      cle,
+      { valeur: medianne(liste.map((o) => o.montantHt)), effectif: liste.length },
+    ]),
+  )
 
   for (const offre of offres) {
     const ecart = ecartVsEstimatif(offre.montantHt, estimatifHt)
@@ -96,7 +134,10 @@ export function detecterAnomalies<T>(
       })
     }
 
-    if (mediane !== null && offres.length >= 3 && !Money.estZero(mediane)) {
+    const famille = medianes.get(offre.famille?.cle ?? '')
+    const mediane = famille?.valeur ?? null
+
+    if (mediane !== null && (famille?.effectif ?? 0) >= 3 && !Money.estZero(mediane)) {
       const ecartMediane = arrondiCommercial(
         Money.versEuros(Money.soustraire(offre.montantHt, mediane))
           .div(Money.versEuros(mediane))
@@ -108,7 +149,7 @@ export function detecterAnomalies<T>(
           reference: offre.reference,
           motif: 'basse_vs_offres',
           ecart,
-          message: `Offre inférieure de ${ecartMediane.abs().toFixed(2)} % à la médiane des offres reçues.`,
+          message: `Offre inférieure de ${ecartMediane.abs().toFixed(2)} % à la médiane des ${offre.famille?.libelle ?? 'offres reçues'}.`,
         })
       }
     }

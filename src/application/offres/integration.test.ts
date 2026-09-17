@@ -252,6 +252,50 @@ describe('tableau comparatif et rapport', () => {
     expect(brouillon).toContain('## À compléter')
   })
 
+  it('le brouillon ne désigne jamais une variante comme mieux-disante', async () => {
+    // Le brouillon part au maître d'ouvrage. Il recalculait son propre
+    // classement au lieu de reprendre celui du tableau, et annonçait donc la
+    // variante — moins chère par construction — comme l'offre la plus basse.
+    const missionB = await creerMission(db(), { ...MISSION, reference: `RB-${SUFFIXE}` })
+    const lotB = await creerLot(db(), missionB, { numero: '08', intitule: 'Cloisons' })
+    const posteB = await ajouterPoste(db(), missionB, { lotId: lotB, type: 'OUVRAGE' })
+    await enregistrerModifications(db(), missionB, [
+      {
+        id: posteB,
+        designation: 'Cloison distributive',
+        unite: 'M2',
+        quantite: '100',
+        prixUnitaireHtBase: PU.depuisEuros('100').toString(),
+      },
+    ])
+
+    const eBase = await creerEntreprise(db(), { raisonSociale: 'Cloisons Martinique' })
+    const eVar = await creerEntreprise(db(), { raisonSociale: 'Plaques des Antilles' })
+    const cBase = await creerConsultation(db(), missionB, { lotId: lotB, entrepriseId: eBase })
+    const cVar = await creerConsultation(db(), missionB, { lotId: lotB, entrepriseId: eVar })
+
+    await enregistrerOffreGlobale(db(), missionB, cBase, {
+      type: 'BASE',
+      montantHt: '13000',
+      dateReception: new Date('2026-10-01'),
+    })
+    await enregistrerOffreGlobale(db(), missionB, cVar, {
+      type: 'VARIANTE',
+      libelle: 'Cloison sèche',
+      montantHt: '8000',
+      dateReception: new Date('2026-10-02'),
+    })
+
+    const tableau = await chargerTableauComparatif(db(), missionB, lotB)
+    const brouillon = genererBrouillonAutomatique(tableau)
+
+    expect(brouillon).toContain('Cloisons Martinique présente le montant le plus bas')
+    expect(brouillon).not.toContain('Plaques des Antilles présente')
+    // La variante figure quand même, avec sa nature et son intitulé.
+    expect(brouillon).toContain('variante « Cloison sèche »')
+    expect(brouillon).toContain('ne figurent pas au classement')
+  })
+
   it('enregistre puis relit le brouillon édité par l’économiste', async () => {
     await enregistrerRapportBrouillon(db(), missionId, lotId, '## Analyse\nTexte rédigé à la main.')
     const relu = await chargerRapportBrouillon(db(), missionId, lotId)
