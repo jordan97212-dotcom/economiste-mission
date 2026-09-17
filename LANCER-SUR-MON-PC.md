@@ -69,6 +69,12 @@ Pour revenir dessus, ouvrir <http://localhost:3000> dans le navigateur.
 
 ---
 
+## Et maintenant ?
+
+**`GUIDE.md`** explique comment se servir de l'application, dans l'ordre où une
+mission se déroule : créer l'opération, chiffrer, métrer, rédiger le CCTP,
+consulter les entreprises, analyser les offres, suivre le chantier, solder.
+
 ## Sauvegardes : à faire dès le premier jour
 
 L'application garde vos données sur votre disque dur. Un disque tombe en panne,

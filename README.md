@@ -41,6 +41,10 @@ la base pour l'opération suivante.
 
 ## Pour s'en servir
 
+**Comment se servir de l'application, écran par écran : `GUIDE.md`.** Ce fichier-ci
+décrit les règles et les décisions ; le guide décrit les gestes.
+
+
 **[LANCER-SUR-MON-PC.md](LANCER-SUR-MON-PC.md)** — installation sur un poste
 Windows, sans rien connaître au développement. Docker Desktop, puis un fichier à
 double-cliquer. La marche à suivre couvre aussi les sauvegardes et ce qu'un
