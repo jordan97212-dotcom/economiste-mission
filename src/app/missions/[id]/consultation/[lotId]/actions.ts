@@ -24,6 +24,15 @@ function lire(donnees: FormData, cle: string): string {
   return String(donnees.get(cle) ?? '').trim()
 }
 
+const TYPES_OFFRE = ['BASE', 'VARIANTE', 'OPTION'] as const
+type TypeOffreSaisi = (typeof TYPES_OFFRE)[number]
+
+/** Lit la nature de l'offre. Une valeur inattendue retombe sur la base. */
+function lireTypeOffre(donnees: FormData): TypeOffreSaisi {
+  const brut = String(donnees.get('type') ?? '')
+  return (TYPES_OFFRE as readonly string[]).includes(brut) ? (brut as TypeOffreSaisi) : 'BASE'
+}
+
 function lireDateFormulaire(donnees: FormData, cle: string): Date | null {
   const brut = lire(donnees, cle)
   if (brut === '') return null
@@ -106,6 +115,8 @@ export async function actionEnregistrerOffreGlobale(
   try {
     const remise = lire(donnees, 'remiseGlobaleHt')
     await enregistrerOffreGlobale(db, missionId, lire(donnees, 'consultationId'), {
+      type: lireTypeOffre(donnees),
+      libelle: lire(donnees, 'libelle') || null,
       montantHt: lire(donnees, 'montantHt'),
       ...(remise ? { remiseGlobaleHt: remise } : {}),
       dateReception,
@@ -141,6 +152,8 @@ export async function actionImporterOffreExcel(
     const contenu = Buffer.from(await fichier.arrayBuffer())
     const remiseExcel = lire(donnees, 'remiseGlobaleHt')
     const resultat = await importerOffreDpgf(db, missionId, lire(donnees, 'consultationId'), contenu, {
+      type: lireTypeOffre(donnees),
+      libelle: lire(donnees, 'libelle') || null,
       dateReception,
       ...(remiseExcel ? { remiseGlobaleHt: remiseExcel } : {}),
       conforme: donnees.get('conforme') === 'on',

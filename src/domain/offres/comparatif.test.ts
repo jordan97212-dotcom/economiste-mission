@@ -13,6 +13,7 @@ function offreGlobale(id: string, entreprise: string, montant: string, options: 
   return {
     offreId: id,
     entrepriseNom: entreprise,
+    type: 'BASE',
     montantHt: euros(montant),
     remiseGlobaleHt: Money.ZERO,
     conforme: true,
@@ -20,6 +21,102 @@ function offreGlobale(id: string, entreprise: string, montant: string, options: 
     ...options,
   }
 }
+
+describe('type d’offre : base, variante, option — point 10.8', () => {
+  it('ne classe jamais une variante, même moins chère', () => {
+    // Une variante propose autre chose : la désigner moins-disante reviendrait
+    // à comparer deux réponses à deux dossiers différents.
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('base', 'Entreprise A', '16000'),
+      offreGlobale('var', 'Entreprise B', '9000', { type: 'VARIANTE' }),
+    ])
+    expect(tableau.colonnes.find((c) => c.moinsDisante)?.offreId).toBe('base')
+  })
+
+  it('ne classe jamais une option, même moins chère', () => {
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('base', 'Entreprise A', '16000'),
+      offreGlobale('opt', 'Entreprise A', '2000', { type: 'OPTION' }),
+    ])
+    expect(tableau.colonnes.find((c) => c.moinsDisante)?.offreId).toBe('base')
+  })
+
+  it('ne classe personne quand il n’y a aucune offre de base', () => {
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('var', 'Entreprise B', '9000', { type: 'VARIANTE' }),
+    ])
+    expect(tableau.colonnes.some((c) => c.moinsDisante)).toBe(false)
+  })
+
+  it('dit de chaque colonne si elle entre au classement', () => {
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('base', 'Entreprise A', '16000'),
+      offreGlobale('refusee', 'Entreprise B', '14000', { conforme: false }),
+      offreGlobale('var', 'Entreprise C', '9000', { type: 'VARIANTE' }),
+    ])
+    expect(tableau.colonnes.map((c) => [c.offreId, c.classee])).toEqual([
+      ['base', true],
+      ['refusee', false],
+      ['var', false],
+    ])
+  })
+
+  it('ne signale pas une option comme anormalement basse', () => {
+    // Une option de 2 000 € face à un estimatif de 15 000 € n'est pas une offre
+    // sous-évaluée : elle ne chiffre pas le même périmètre. La signaler
+    // apprendrait à ignorer l'alerte.
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('base', 'Entreprise A', '15000'),
+      offreGlobale('opt', 'Entreprise A', '2000', { type: 'OPTION' }),
+    ])
+    expect(tableau.anomaliesGlobales.map((a) => a.reference)).not.toContain('opt')
+  })
+
+  it('signale en revanche une variante anormalement basse', () => {
+    // Une variante couvre le même périmètre : l'écart reste parlant.
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('var', 'Entreprise B', '3000', { type: 'VARIANTE' }),
+    ])
+    expect(tableau.anomaliesGlobales.map((a) => a.reference)).toContain('var')
+  })
+
+  it('marque l’écart d’une option comme non comparable', () => {
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('base', 'Entreprise A', '15000'),
+      offreGlobale('opt', 'Entreprise A', '2000', { type: 'OPTION' }),
+    ])
+    expect(tableau.colonnes.find((c) => c.offreId === 'opt')?.ecartComparable).toBe(false)
+    expect(tableau.colonnes.find((c) => c.offreId === 'base')?.ecartComparable).toBe(true)
+  })
+
+  it('garde le libellé, qui distingue deux variantes d’une même entreprise', () => {
+    const tableau = construireComparatif(POSTES, [
+      offreGlobale('v1', 'Entreprise A', '14000', { type: 'VARIANTE', libelle: 'Ossature bois' }),
+      offreGlobale('v2', 'Entreprise A', '13000', { type: 'VARIANTE', libelle: 'Ossature métal' }),
+    ])
+    expect(tableau.colonnes.map((c) => c.libelle)).toEqual(['Ossature bois', 'Ossature métal'])
+  })
+
+  it('rend un libellé nul quand il n’y en a pas', () => {
+    const tableau = construireComparatif(POSTES, [offreGlobale('base', 'Entreprise A', '15000')])
+    expect(tableau.colonnes[0]?.libelle).toBe(null)
+  })
+
+  it('écarte une option de la détection d’anomalie ligne à ligne', () => {
+    const detaillee = (id: string, montant: string, type: OffreAComparer['type']) =>
+      offreGlobale(id, 'Entreprise', '0', {
+        type,
+        lignes: [{ posteId: 'p1', montantHt: euros(montant) }],
+      })
+    const tableau = construireComparatif(POSTES, [
+      detaillee('a', '10000', 'BASE'),
+      detaillee('b', '9800', 'BASE'),
+      detaillee('opt', '300', 'OPTION'),
+    ])
+    const ligne = tableau.lignes.find((l) => l.poste.posteId === 'p1')
+    expect(ligne?.anomalies.map((a) => a.reference)).not.toContain('opt')
+  })
+})
 
 describe('construction du tableau comparatif', () => {
   it('calcule l’estimatif du lot comme somme des postes', () => {

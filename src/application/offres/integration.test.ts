@@ -11,6 +11,7 @@ import { creerMission } from '../missions/service'
 import { ajouterPoste, creerLot } from '../chiffrage/structure'
 import { enregistrerModifications, chargerChiffrage } from '../chiffrage/service'
 import { genererDpgfExcel } from '../../infrastructure/excel/dpgf-export'
+import * as PU from '../../domain/money/prix-unitaire'
 import { creerEntreprise, listerEntreprises, supprimerEntreprise } from '../entreprises/service'
 import { creerConsultation, listerConsultationsDuLot, modifierConsultation } from '../consultations/service'
 import {
@@ -112,6 +113,52 @@ describe('consultation et offres', () => {
     const consultation = consultations.find((c) => c.id === consultationId)
     expect(consultation?.statut).toBe('OFFRE_RECUE')
     expect(consultation?.nbOffres).toBe(1)
+  })
+
+  it('une variante moins chère ne devient pas la moins-disante — point 10.8', async () => {
+    // Le type doit survivre à l'aller-retour en base jusqu'au classement :
+    // sinon une variante, qui répond à un autre dossier, serait désignée
+    // mieux-disante et fausserait la recommandation d'attribution.
+    // Sa propre opération : ajouter un lot à la mission partagée fausserait le
+    // test d'export DPGF, qui compte les lots qu'il exporte.
+    const missionVariante = await creerMission(db(), { ...MISSION, reference: `OV-${SUFFIXE}` })
+    const lotVariante = await creerLot(db(), missionVariante, { numero: '07', intitule: 'Charpente' })
+    const posteId = await ajouterPoste(db(), missionVariante, { lotId: lotVariante, type: 'OUVRAGE' })
+    await enregistrerModifications(db(), missionVariante, [
+      {
+        id: posteId,
+        designation: 'Charpente traditionnelle',
+        unite: 'M2',
+        quantite: '100',
+        prixUnitaireHtBase: PU.depuisEuros('200').toString(),
+      },
+    ])
+
+    const baseId = await creerEntreprise(db(), { raisonSociale: 'Charpentes Caraïbes' })
+    const varId = await creerEntreprise(db(), { raisonSociale: 'Bois des Îles' })
+    const consulBase = await creerConsultation(db(), missionVariante, { lotId: lotVariante, entrepriseId: baseId })
+    const consulVar = await creerConsultation(db(), missionVariante, { lotId: lotVariante, entrepriseId: varId })
+
+    await enregistrerOffreGlobale(db(), missionVariante, consulBase, {
+      type: 'BASE',
+      montantHt: '26000',
+      dateReception: new Date('2026-10-01'),
+    })
+    await enregistrerOffreGlobale(db(), missionVariante, consulVar, {
+      type: 'VARIANTE',
+      libelle: 'Lamellé-collé',
+      montantHt: '18000',
+      dateReception: new Date('2026-10-02'),
+    })
+
+    const tableau = await chargerTableauComparatif(db(), missionVariante, lotVariante)
+    const gagnante = tableau.colonnes.find((c) => c.moinsDisante)
+    expect(gagnante?.entrepriseNom).toBe('Charpentes Caraïbes')
+
+    const variante = tableau.colonnes.find((c) => c.entrepriseNom === 'Bois des Îles')
+    expect(variante?.type).toBe('VARIANTE')
+    expect(variante?.libelle).toBe('Lamellé-collé')
+    expect(variante?.classee).toBe(false)
   })
 
   it('reprend un DPGF « à remplir » réellement exporté puis rempli', async () => {

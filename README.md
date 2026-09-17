@@ -26,6 +26,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 13 | Import de CCTP Word dans la bibliothèque de trames | Livré |
 | 14 | Génération du CCTP depuis le DPGF, par appariement des trames | Livré |
 | 15 | Versions de chiffrage figées et comparatif entre phases (point 10.4) | Livré |
+| 16 | Type d’offre base/variante/option et export Excel du comparatif (point 10.8) | Livré |
 
 Les trois phases de la spécification sont couvertes, du cadrage à la clôture.
 On crée ou duplique une mission, on saisit son chiffrage au clavier ou par
@@ -524,11 +525,49 @@ choix reste humain — et se termine toujours par une invite à le compléter. L
 texte se modifie comme celui d'un CCTP, avec le même enregistrement différé,
 puis se télécharge en Word avec le tableau chiffré en regard.
 
-### Une remise globale, répartie point 10.8
+### Base, variante, option — point 10.8
+
+Une entreprise ne remet pas toujours une seule offre. Une **base** répond au
+dossier tel qu'il est ; une **variante** propose une autre façon de faire le même
+ouvrage ; une **option** est un complément chiffré à part, qui ne remplace rien.
+
+La distinction n'est pas décorative. **Le classement ne retient que les offres de
+base conformes.** Une variante moins chère ne devient donc jamais moins-disante :
+elle ne répond pas au même dossier, et la désigner reviendrait à recommander
+l'attribution d'un marché qui n'a pas été mis en concurrence. Les variantes et
+les options figurent au tableau — elles comptent dans la décision — mais hors
+classement, et l'écran le dit.
+
+Deux conséquences sur les alertes. L'écart d'une **option** vis-à-vis de
+l'estimatif n'est pas affiché : une option de 2 000 € face à un estimatif de
+100 000 € serait signalée « anormalement basse » à chaque fois, ce qui
+apprendrait à ignorer l'alerte. Une **variante**, qui couvre le même périmètre,
+reste comparée normalement.
+
+Enfin, puisqu'une même entreprise peut remettre plusieurs offres, son nom seul
+ne suffit plus à les distinguer : colonnes du comparatif et messages d'écart
+portent la nature de l'offre et son intitulé.
+
+### Une remise globale, répartie
 
 Une offre peut porter une remise globale, distincte des prix de chaque ligne.
 Elle se soustrait du montant déclaré pour obtenir le montant net qui sert à
 toute comparaison — jamais retirée d'une seule ligne au choix.
+
+### Export Excel du comparatif
+
+Le comparatif est ce qu'on envoie au maître d'ouvrage. Il ne sortait jusqu'ici
+qu'en Word, à l'intérieur du rapport d'analyse : lisible, mais impossible à
+reprendre. Le classeur porte deux feuilles — une synthèse, une ligne par offre
+avec sa nature et son écart ; un détail croisant ouvrages et entreprises — et
+des **nombres, pas du texte**, pour que le destinataire trie et recalcule sans
+rien retaper.
+
+Une cellule vide y signifie que l'entreprise n'a pas chiffré cet ouvrage. Jamais
+zéro : elle ne l'a pas chiffré à zéro — règle 7.
+
+Ce qui n'y figure pas : ni prix de base, ni coefficient d'ajustement. Ce sont
+des données internes, et le comparatif sort de chez l'économiste — règle 8.
 
 ## Suivi financier de chantier
 
@@ -714,7 +753,7 @@ src/
   infrastructure/  Prisma cloisonné par propriétaire, authentification argon2id
     sources-prix/    implémentation du port SourcePrix
     sources-normes/  implémentation du port SourceNormes
-    excel/           lecture de classeurs, DPGF, tableau de suivi
+    excel/           lecture de classeurs, DPGF, suivi, comparatif des offres
     docx/            pièces écrites, rapport d'offres, décompte, lecture d'un CCTP, PDF
   app/             Next.js : pages, actions serveur
   components/      grille de chiffrage, formulaire de mission

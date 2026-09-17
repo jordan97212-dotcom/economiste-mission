@@ -129,6 +129,9 @@ export async function importerOffreDpgf(
   consultationId: string,
   contenu: Buffer,
   metadonnees: {
+    /** Une entreprise peut renvoyer le DPGF rempli en variante. Défaut : base. */
+    readonly type?: TypeOffrePrisma
+    readonly libelle?: string | null
     readonly dateReception: Date
     readonly remiseGlobaleHt?: string
     readonly conforme?: boolean
@@ -217,7 +220,8 @@ export async function importerOffreDpgf(
   const offre = await client.offre.create({
     data: {
       consultationId,
-      type: 'BASE',
+      type: metadonnees.type ?? 'BASE',
+      libelle: metadonnees.libelle?.trim() || null,
       montantHt: montantTotal as bigint,
       remiseGlobaleHt,
       dateReception: metadonnees.dateReception,
@@ -322,6 +326,8 @@ export async function chargerTableauComparatif(
   const offres: OffreAComparer[] = offresBrutes.map((o) => ({
     offreId: o.id,
     entrepriseNom: o.consultation.entreprise.raisonSociale,
+    type: o.type,
+    libelle: o.libelle,
     montantHt: Money.depuisCentimes(o.montantHt),
     remiseGlobaleHt: Money.depuisCentimes(o.remiseGlobaleHt),
     conforme: o.conforme,

@@ -35,9 +35,23 @@ export interface LigneOffreAComparer {
   readonly montantHt: MoneyValue
 }
 
+/**
+ * Nature de l'offre — point 10.8.
+ *
+ * Une **base** répond au dossier tel qu'il est remis. Une **variante** propose
+ * une autre façon de faire le même ouvrage. Une **option** est un complément,
+ * chiffré à part, qui ne remplace rien.
+ *
+ * La distinction n'est pas décorative : on ne classe que ce qui se compare.
+ */
+export type TypeOffre = 'BASE' | 'VARIANTE' | 'OPTION'
+
 export interface OffreAComparer {
   readonly offreId: string
   readonly entrepriseNom: string
+  readonly type: TypeOffre
+  /** Distingue deux variantes d'une même entreprise. */
+  readonly libelle?: string | null
   /** Montant global déclaré par l'entreprise, avant remise. */
   readonly montantHt: MoneyValue
   /** Remise globale, à soustraire du montant pour la comparaison — point 10.8. */
@@ -63,6 +77,15 @@ export interface LigneComparatif {
 export interface ColonneComparatif {
   readonly offreId: string
   readonly entrepriseNom: string
+  readonly type: TypeOffre
+  readonly libelle: string | null
+  /**
+   * Vrai quand l'offre entre dans le classement : une base, conforme. Les
+   * variantes et les options figurent au tableau sans y prétendre.
+   */
+  readonly classee: boolean
+  /** Null pour une option : son montant ne se compare pas à l'estimatif entier. */
+  readonly ecartComparable: boolean
   readonly montantHt: MoneyValue
   readonly remiseGlobaleHt: MoneyValue
   /** Montant net de remise : celui qui sert à la comparaison. */
@@ -93,14 +116,23 @@ export function construireComparatif(
 ): TableauComparatif {
   const montantEstimeHt = Money.somme(postes.map((p) => p.montantEstimeHt))
 
-  const conformes = offres.filter((o) => o.conforme)
+  // Le classement ne retient que les offres de base conformes. Une variante
+  // propose autre chose, une option complète : les mettre dans le même
+  // classement désignerait une moins-disante qui ne répond pas au même dossier.
+  const classees = offres.filter((o) => o.conforme && o.type === 'BASE')
   const gagnante =
-    conformes.length > 0
-      ? calculerMoinsDisante(conformes.map((o) => ({ reference: o.offreId, montantHt: montantNet(o) })))
+    classees.length > 0
+      ? calculerMoinsDisante(classees.map((o) => ({ reference: o.offreId, montantHt: montantNet(o) })))
       : null
 
+  // Une option chiffre un complément, pas le dossier : la comparer à
+  // l'estimatif entier la signalerait toujours comme anormalement basse, et
+  // apprendrait à ignorer l'alerte. Les variantes, elles, couvrent le même
+  // périmètre et restent comparables.
   const anomaliesGlobales = detecterAnomalies(
-    offres.map((o) => ({ reference: o.offreId, montantHt: montantNet(o) })),
+    offres
+      .filter((o) => o.type !== 'OPTION')
+      .map((o) => ({ reference: o.offreId, montantHt: montantNet(o) })),
     montantEstimeHt,
     seuils,
   )
@@ -108,6 +140,10 @@ export function construireComparatif(
   const colonnes: ColonneComparatif[] = offres.map((offre) => ({
     offreId: offre.offreId,
     entrepriseNom: offre.entrepriseNom,
+    type: offre.type,
+    libelle: offre.libelle ?? null,
+    classee: offre.conforme && offre.type === 'BASE',
+    ecartComparable: offre.type !== 'OPTION',
     montantHt: offre.montantHt,
     remiseGlobaleHt: offre.remiseGlobaleHt,
     montantNetHt: montantNet(offre),
@@ -131,6 +167,7 @@ export function construireComparatif(
         ligne: offre.lignes.find((l) => l.posteId === poste.posteId),
       }))
       .filter((x): x is { offre: OffreAComparer; ligne: LigneOffreAComparer } => x.ligne !== undefined)
+      .filter(({ offre }) => offre.type !== 'OPTION')
 
     const anomalies = detecterAnomalies(
       offresAvecCetPoste.map(({ offre, ligne }) => ({ reference: offre.offreId, montantHt: ligne.montantHt })),

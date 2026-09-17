@@ -48,6 +48,10 @@ export interface ConsultationAffichee {
 export interface ColonneComparatifAffichee {
   readonly offreId: string
   readonly entrepriseNom: string
+  readonly type: 'BASE' | 'VARIANTE' | 'OPTION'
+  readonly libelle: string | null
+  readonly classee: boolean
+  readonly ecartComparable: boolean
   readonly montantHt: string
   readonly remiseGlobaleHt: string
   readonly montantNetHt: string
@@ -291,7 +295,18 @@ function SectionOffres({
     <section className="carte" style={{ marginBottom: 22 }}>
       <div className="carte-entete">
         <h2>Offres reçues</h2>
-        <span className="attenue" style={{ fontSize: 13 }}>{tableau.colonnes.length} offre(s)</span>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span className="attenue" style={{ fontSize: 13 }}>{tableau.colonnes.length} offre(s)</span>
+          {tableau.colonnes.length > 0 ? (
+            <a
+              href={`/missions/${missionId}/consultation/${lotId}/comparatif`}
+              className="bouton"
+              download
+            >
+              Comparatif (.xlsx)
+            </a>
+          ) : null}
+        </div>
       </div>
 
       {tableau.colonnes.length === 0 ? (
@@ -302,6 +317,7 @@ function SectionOffres({
             <thead>
               <tr>
                 <th>Entreprise</th>
+                <th>Nature</th>
                 <th style={{ textAlign: 'right' }}>Montant HT</th>
                 <th style={{ textAlign: 'right' }}>Remise</th>
                 <th style={{ textAlign: 'right' }}>Écart estimatif</th>
@@ -317,10 +333,24 @@ function SectionOffres({
                     {c.entrepriseNom}{' '}
                     {c.moinsDisante ? <span className="etiquette etiquette-accent">mieux-disant</span> : null}
                   </td>
+                  <td style={{ fontSize: 13 }}>
+                    {c.type === 'BASE' ? (
+                      <span className="attenue">base</span>
+                    ) : (
+                      <span className="etiquette">{c.type === 'VARIANTE' ? 'variante' : 'option'}</span>
+                    )}
+                    {c.libelle ? (
+                      <span className="attenue" style={{ marginLeft: 6, fontSize: 12.5 }}>{c.libelle}</span>
+                    ) : null}
+                  </td>
                   <td className="chiffre">{formaterMontant(c.montantHt)}</td>
                   <td className="chiffre attenue">{c.remiseGlobaleHt !== '0' ? formaterMontant(c.remiseGlobaleHt) : '—'}</td>
                   <td className="chiffre">
-                    {c.ecartPourcent !== null ? (
+                    {!c.ecartComparable ? (
+                      <span className="attenue" title="Une option chiffre un complément, pas le dossier : l’écart vis-à-vis de l’estimatif n’aurait pas de sens.">
+                        sans objet
+                      </span>
+                    ) : c.ecartPourcent !== null ? (
                       <span className={Number(c.ecartPourcent) < 0 ? 'attenue' : ''}>
                         {formaterMontantSigne(c.ecartMontantHt)} ({c.ecartPourcent.replace('.', ',').replace(/^(?!-)/, '+')} %)
                       </span>
@@ -378,6 +408,18 @@ function SectionOffres({
                 <input id="fichierOffre" name="fichier" type="file" accept=".xlsx,.xlsm" required />
               </div>
               <div className="champ">
+                <label htmlFor="typeExcel">Nature de l’offre</label>
+                <select id="typeExcel" name="type" defaultValue="BASE">
+                  <option value="BASE">Base — répond au dossier</option>
+                  <option value="VARIANTE">Variante — autre façon de faire</option>
+                  <option value="OPTION">Option — complément chiffré à part</option>
+                </select>
+              </div>
+              <div className="champ">
+                <label htmlFor="libelleExcel">Intitulé (variantes et options)</label>
+                <input id="libelleExcel" name="libelle" placeholder="Ossature bois, éclairage extérieur…" />
+              </div>
+              <div className="champ">
                 <label htmlFor="dateReceptionExcel">Date de réception</label>
                 <input id="dateReceptionExcel" name="dateReception" type="date" required />
               </div>
@@ -402,6 +444,18 @@ function SectionOffres({
               <input type="hidden" name="missionId" value={missionId} />
               <input type="hidden" name="lotId" value={lotId} />
               <input type="hidden" name="consultationId" value={consultationId} />
+              <div className="champ">
+                <label htmlFor="typeGlobale">Nature de l’offre</label>
+                <select id="typeGlobale" name="type" defaultValue="BASE">
+                  <option value="BASE">Base — répond au dossier</option>
+                  <option value="VARIANTE">Variante — autre façon de faire</option>
+                  <option value="OPTION">Option — complément chiffré à part</option>
+                </select>
+              </div>
+              <div className="champ">
+                <label htmlFor="libelleGlobale">Intitulé (variantes et options)</label>
+                <input id="libelleGlobale" name="libelle" placeholder="Ossature bois, éclairage extérieur…" />
+              </div>
               <div className="champ">
                 <label htmlFor="montantHt">Montant HT</label>
                 <input id="montantHt" name="montantHt" required inputMode="decimal" placeholder="0,00" className="mono" />
@@ -473,7 +527,16 @@ function SectionComparatif({ tableau }: { tableau: TableauAffiche }) {
     ...tableau.anomaliesGlobales.map((a) => ({ ...a, repere: 'Montant global' })),
     ...tableau.lignes.flatMap((l) => l.anomalies.map((a) => ({ ...a, repere: `${l.code ?? ''} ${l.designation}`.trim() }))),
   ]
-  const nomParOffre = new Map(tableau.colonnes.map((c) => [c.offreId, c.entrepriseNom]))
+  // Une même entreprise peut remettre une base et une variante : son seul nom
+  // ne suffit plus à désigner l'offre visée par un écart.
+  const nomParOffre = new Map(
+    tableau.colonnes.map((c) => [
+      c.offreId,
+      c.type === 'BASE'
+        ? c.entrepriseNom
+        : `${c.entrepriseNom} (${c.type === 'VARIANTE' ? 'variante' : 'option'}${c.libelle ? ` — ${c.libelle}` : ''})`,
+    ]),
+  )
 
   return (
     <section className="carte" style={{ marginBottom: 22 }}>
@@ -497,6 +560,14 @@ function SectionComparatif({ tableau }: { tableau: TableauAffiche }) {
                   {tableau.colonnes.map((c) => (
                     <th key={c.offreId} style={{ textAlign: 'right' }}>
                       {c.entrepriseNom}{c.moinsDisante ? ' ★' : ''}
+                      {/* Une entreprise peut remettre plusieurs offres : la
+                          colonne dit laquelle. */}
+                      {c.type !== 'BASE' ? (
+                        <span style={{ display: 'block', fontWeight: 400, textTransform: 'none' }}>
+                          {c.type === 'VARIANTE' ? 'variante' : 'option'}
+                          {c.libelle ? ` — ${c.libelle}` : ''}
+                        </span>
+                      ) : null}
                     </th>
                   ))}
                 </tr>
