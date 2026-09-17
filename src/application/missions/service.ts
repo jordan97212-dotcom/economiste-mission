@@ -301,7 +301,17 @@ export async function supprimerMission(client: PrismaClient, id: string): Promis
     select: { id: true, reference: true, nomOperation: true },
   })
   if (!existante) throw new MissionIntrouvable(id)
-  await client.mission.delete({ where: { id } })
+
+  // Un rappel de repère est retenu par un `Restrict` : il empêche de supprimer
+  // un repère dont une feuille de métré dépend encore. Cette garde protège le
+  // repère pris isolément ; elle n'a pas de sens quand c'est la mission entière
+  // qui part, feuilles comprises. PostgreSQL l'applique pourtant aussi dans ce
+  // cas, et la cascade échouait. On défait donc les rappels d'abord, dans la
+  // même transaction : soit la mission s'en va en entier, soit rien ne bouge.
+  await client.$transaction(async (tx) => {
+    await tx.ligneMetre.deleteMany({ where: { rappelRepere: { missionId: id } } })
+    await tx.mission.delete({ where: { id } })
+  })
   await journaliser(client, {
     entite: 'Mission',
     entiteId: id,

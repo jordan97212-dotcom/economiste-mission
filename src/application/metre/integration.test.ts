@@ -9,7 +9,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '@prisma/client'
 import { clientPour } from '../../infrastructure/prisma'
-import { creerMission } from '../missions/service'
+import { creerMission, supprimerMission } from '../missions/service'
 import { ajouterPoste, creerLot } from '../chiffrage/structure'
 import { chargerChiffrage, enregistrerModifications, QuantiteCalculee } from '../chiffrage/service'
 import {
@@ -101,6 +101,12 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
+  // Un rappel de repère est retenu par un `Restrict`. Si un test échoue en
+  // laissant une feuille debout, la cascade ne passe plus et le jeu d'essai
+  // resterait dans la base à empoisonner les exécutions suivantes.
+  await brut.ligneMetre.deleteMany({
+    where: { rappelRepere: { mission: { owner: { email: EMAIL } } } },
+  })
   await brut.user.deleteMany({ where: { email: EMAIL } })
   await brut.$disconnect()
 })
@@ -261,5 +267,43 @@ describe('repères', () => {
     const reperes = await listerReperes(db(), missionId)
     expect(reperes.map((r) => r.id)).not.toContain(repereEtage)
     expect(await quantiteDe(posteDalle)).toBe('40')
+  })
+})
+
+describe('suppression d’une mission métrée', () => {
+  it('emporte les feuilles qui rappellent un repère', async () => {
+    // Le rappel est retenu par un `Restrict`, pour qu'on ne puisse pas retirer
+    // un repère dont une feuille dépend encore. Cette garde ne doit pas retenir
+    // la mission entière : jusqu'ici, supprimer une opération métrée échouait
+    // sur une contrainte de clé étrangère, et l'économiste restait avec une
+    // mission qu'il ne pouvait plus effacer.
+    const mission = await creerMission(db(), {
+      nomOperation: 'Chantier à effacer',
+      typeOuvrage: 'TERTIAIRE',
+      nature: 'CONSTRUCTION_NEUVE',
+      typeMarche: 'PRIVE',
+      coefficientLocalDefaut: '1',
+      precisionPu: 2,
+      reference: `M3-${SUFFIXE}`,
+    })
+    const lot = await creerLot(db(), mission, { numero: '02', intitule: 'Gros œuvre' })
+    const poste = await ajouterPoste(db(), mission, { lotId: lot, type: 'OUVRAGE' })
+    await enregistrerModifications(db(), mission, [
+      {
+        id: poste,
+        code: '02.01',
+        designation: 'Voile béton',
+        unite: 'M2',
+        prixUnitaireHtBase: PU.depuisEuros('100').toString(),
+      },
+    ])
+
+    const repere = await creerRepere(db(), mission, { nom: 'Linéaire de façade', unite: 'ML' })
+    await enregistrerRepere(db(), mission, repere, { lignes: [mesure({ longueur: '30' })] })
+    await enregistrerMetrePoste(db(), mission, poste, [rappel(repere, { hauteur: '3' })])
+
+    await expect(supprimerMission(db(), mission)).resolves.toBeUndefined()
+    expect(await brut.mission.count({ where: { id: mission } })).toBe(0)
+    expect(await brut.repereMetre.count({ where: { missionId: mission } })).toBe(0)
   })
 })
