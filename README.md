@@ -29,6 +29,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 16 | Type d’offre base/variante/option et export Excel du comparatif (point 10.8) | Livré |
 | 17 | Métré par ouvrage, repères réutilisables et export du métré | Livré |
 | 18 | Pièces du dossier (plans, rapports, diagnostics) et dossier de consultation en ZIP (point 10.9) | Livré |
+| 19 | Import du répertoire d’entreprises depuis un CSV | Livré |
 
 Les trois phases de la spécification sont couvertes, du cadrage à la clôture.
 On crée ou duplique une mission, on saisit son chiffrage au clavier ou par
@@ -567,6 +568,63 @@ se branche dans `src/infrastructure/sources-normes/` sans toucher au métier.
 L'implémentation actuelle, `ReleveManuel`, rend ce qu'on lui donne et annonce
 `automatique: false` — pour que l'interface ne promette pas ce qu'elle ne peut
 pas tenir.
+
+## Importer le répertoire d’entreprises
+
+Recopier trente entreprises à la main est le genre de corvée qui décide, à elle
+seule, si un outil sert ou prend la poussière. *Répertoire → Importer depuis un
+fichier CSV* prend l’export d’un tableur, d’une messagerie ou d’un logiciel de
+gestion.
+
+Trois temps, toujours les mêmes : on lit, on montre ce qu’on a compris, on
+n’écrit qu’après accord.
+
+### Ce qui est reconnu tout seul
+
+- **Le séparateur** — point-virgule, virgule ou tabulation. Le choix retenu est
+  celui qui découpe régulièrement d’une ligne à l’autre : des virgules
+  nombreuses mais irrégulières sont du texte, pas des colonnes.
+- **L’encodage** — UTF-8 ou Windows-1252, celui que produit « Enregistrer sous →
+  CSV » d’un Excel français. Un fichier qui refuse l’UTF-8 strict vient
+  pratiquement toujours du second ; deviner dans ce sens ne peut pas abîmer un
+  fichier correct, alors que l’inverse transformerait tous les accents en
+  charabia sans que rien ne le signale.
+- **Les colonnes** — « Entreprise », « Société », « Mél », « Tél »,
+  « Spécialité » et bien d’autres. La proposition est **corrigeable colonne par
+  colonne** : une reconnaissance automatique se trompe, et se tromper en silence
+  remplirait le répertoire de courriels dans la case téléphone.
+
+Un nom entre guillemets qui contient un point-virgule reste entier. Une adresse
+écrite sur deux lignes reste une seule cellule.
+
+### Ce qui est signalé, et jamais corrigé
+
+Avant d’écrire quoi que ce soit, l’écran liste ce qui mérite un coup d’œil, avec
+le numéro de ligne tel que votre tableur l’affiche :
+
+- un **SIRET** qui ne fait pas quatorze chiffres, ou dont la clé de contrôle ne
+  tombe pas juste — un chiffre a pu être mal recopié ;
+- une **adresse électronique** qui n’en a pas l’air, ce qui trahit souvent deux
+  colonnes inversées ;
+- une **ligne sans raison sociale**, qui est écartée : elle ne désigne personne ;
+- une **entreprise répétée** dans le fichier, reprise une seule fois.
+
+Aucune de ces valeurs n’est rectifiée. Elles entrent telles que votre fichier les
+porte : c’est à vous de trancher, pas à l’application de corriger à votre place
+— règle 7.
+
+### Ce qui est déjà au répertoire
+
+Une entreprise déjà connue — reconnue à son SIRET, ou à défaut à sa raison
+sociale, casse et accents mis de côté — n’est **jamais écrasée**. Deux
+possibilités, et la première est celle par défaut :
+
+- **ne pas y toucher** ;
+- **compléter ses champs vides** : ce que vous avez saisi à la main prime
+  toujours sur ce qu’un fichier venu d’ailleurs propose, et les corps d’état
+  s’ajoutent sans que les anciens disparaissent.
+
+Repasser deux fois le même fichier ne double donc pas le répertoire.
 
 ## Les pièces du dossier
 
