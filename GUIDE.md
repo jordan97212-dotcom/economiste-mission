@@ -29,6 +29,8 @@ ne se mélangent pas.
 Ces sept écrans ne connaissent aucune mission en particulier. Ce sont **vos
 réserves** : elles servent à toutes vos opérations et grossissent avec le temps.
 
+![La barre du haut : vos réserves, communes à toutes les missions.](docs/captures/01-barre-du-haut.png)
+
 ### La fiche de mission : le travail
 
 Tout le reste vit **à l'intérieur d'une mission**. On y entre par le tableau de
@@ -42,6 +44,8 @@ pièces écrites, consultation, suivi, clôture.
 
 C'est la même logique pour le métré, les pièces, les versions, le suivi et la
 clôture : ils appartiennent à une mission, donc ils s'ouvrent depuis elle.
+
+![La fiche de mission. Le bouton « Consultation » est sur la ligne du lot, dans le tableau des lots en bas.](docs/captures/03-fiche-mission-consultation.png)
 
 ---
 
@@ -78,6 +82,8 @@ d'un tableur, d'une messagerie ou d'un logiciel de gestion. Le séparateur et
 l'encodage sont reconnus tout seuls ; vous confirmez à quoi correspondent les
 colonnes, vous vérifiez l'aperçu, et rien n'est écrit avant votre accord.
 
+![Le répertoire d’entreprises, avec son bouton d’import.](docs/captures/10-repertoire.png)
+
 Repasser deux fois le même fichier ne double pas le répertoire : une entreprise
 déjà connue est reconnue à son SIRET, ou à défaut à sa raison sociale.
 
@@ -109,6 +115,8 @@ Deux réglages méritent une seconde d'attention, parce qu'ils s'appliquent ensu
 
 La référence (`2026-014`) est attribuée automatiquement.
 
+![Le tableau de bord : toutes vos missions, par statut.](docs/captures/02-tableau-de-bord.png)
+
 ### 3.2 Créer les lots
 
 Sur la fiche de mission, tableau des lots. Numéro, intitulé, corps d'état.
@@ -139,6 +147,8 @@ est propre à la ligne.
 **Les totaux** se recalculent à la frappe, avec le même code que le serveur :
 l'affichage ne peut pas diverger de ce qui sera enregistré.
 
+![La grille de chiffrage. Le bouton Σ, entouré, ouvre la feuille de métré de la ligne.](docs/captures/04-chiffrage.png)
+
 ### 3.4 Le métré
 
 Plutôt que de taper une quantité venue d'ailleurs, vous pouvez la **calculer**.
@@ -156,6 +166,8 @@ linéaire, longueur × largeur une surface.
   ouvrage au mètre linéaire), la feuille le dit. C'est un **avertissement**, pas
   un refus.
 
+![La feuille de métré d’un ouvrage : un rappel de repère, une mesure, une déduction.](docs/captures/05-metre.png)
+
 **Les repères** (*chiffrage → Repères de métré*) sont vos sous-totaux nommés :
 « surface étage courant » se mesure une fois, et « + Rappel de repère » vient y
 chercher sa valeur dans n'importe quel ouvrage. Quand le repère change, tous les
@@ -163,6 +175,8 @@ ouvrages qui le rappellent suivent.
 
 Un rappel se multiplie comme les autres facteurs : rappeler une surface et donner
 une épaisseur donne un volume.
+
+![L’écran des repères. Celui-ci est rappelé par une feuille de métré : il ne peut pas être supprimé.](docs/captures/06-reperes.png)
 
 *Exporter le métré* produit un classeur à deux feuilles — c'est une pièce
 justificative, à sortir quand on vous demande d'où viennent ces 142,50 m².
@@ -204,6 +218,8 @@ lisible, un **indice de révision** — c'est lui qui distingue deux versions du
 même dessin —, un **lot concerné** ou « toute l'opération », et une case
 **« au DCE »**. Décochée, la pièce reste chez vous.
 
+![Les pièces du dossier, rangées par nature.](docs/captures/07-pieces.png)
+
 ### 3.7 Figer une version
 
 *Fiche de mission → Versions.*
@@ -240,6 +256,8 @@ Sur cet écran, pour ce lot :
   ligne à ligne quand l'entreprise a rendu le bordereau rempli.
 - **Le tableau comparatif**, qui se construit tout seul.
 
+![L’écran de consultation d’un lot. Le bouton entouré produit l’archive à envoyer aux entreprises.](docs/captures/08-consultation.png)
+
 ### 3.9 L'analyse des offres
 
 Sur le même écran.
@@ -261,6 +279,8 @@ conclusion imposée : c'est vous qui engagez votre responsabilité.
 
 **L'export Excel du comparatif** part au maître d'ouvrage : les montants y sont
 des nombres, pas du texte, et ni le prix de base ni le coefficient n'y figurent.
+
+![Le tableau comparatif. La variante figure au tableau, marquée hors classement.](docs/captures/09-comparatif.png)
 
 ### 3.10 L'attribution et le suivi
 
