@@ -184,3 +184,21 @@ export interface MetreMissionDTO {
   readonly lots: readonly LotMetreDTO[]
   readonly reperes: readonly RepereDetailDTO[]
 }
+
+/* --- Pièces du dossier — spec §5.5, point 10.9 ----------------------------- */
+
+export interface PieceJointeDTO {
+  readonly id: string
+  readonly nomFichier: string
+  readonly libelle: string | null
+  /** Indice de révision d'un plan. */
+  readonly indice: string | null
+  readonly categorie: string
+  readonly typeMime: string
+  readonly tailleOctets: number
+  readonly empreinte: string
+  readonly lotId: string | null
+  readonly lotLibelle: string | null
+  readonly inclureAuDce: boolean
+  readonly deposeLe: string
+}

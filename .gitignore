@@ -8,3 +8,4 @@ coverage/
 tsconfig.tsbuildinfo
 sauvegardes/
 prisma/seed.mjs
+donnees/

@@ -302,6 +302,7 @@ model Lot {
   consultations Consultation[]
   situations    SituationTravaux[]
   avenants      Avenant[]
+  piecesJointes PieceJointe[]
 
   @@unique([missionId, numero])
   @@index([missionId, ordre])
@@ -653,8 +654,26 @@ model PieceJointe {
   cheminStockage String @map("chemin_stockage")
   empreinte   String // SHA-256
 
+  /// Ce qu'est la pièce, pour la ranger dans le dossier de consultation.
+  categorie CategoriePiece @default(AUTRE)
+
+  /// Nom lisible donné par l'économiste : « Plan de masse ». C'est lui qui
+  /// nomme la pièce dans l'archive, plutôt que « PL-002-v3-final.pdf ».
+  libelle String?
+
+  /// Indice de révision d'un plan. Sans lui, deux envois successifs du même
+  /// dessin ne se distinguent pas.
+  indice String?
+
+  /// Vrai quand la pièce part avec le dossier de consultation. Faux pour ce
+  /// qui reste interne à l'économiste — règle 8.
+  inclureAuDce Boolean @default(true) @map("inclure_au_dce")
+
   missionId       String?        @map("mission_id")
   mission         Mission?       @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  /// Lot concerné, ou null quand la pièce vaut pour toute l'opération.
+  lotId           String?        @map("lot_id")
+  lot             Lot?           @relation(fields: [lotId], references: [id], onDelete: SetNull)
   posteId         String?        @map("poste_id")
   poste           Poste?         @relation(fields: [posteId], references: [id], onDelete: Cascade)
   prixReferenceId String?        @map("prix_reference_id")
@@ -665,7 +684,18 @@ model PieceJointe {
   deposeLe DateTime @default(now()) @map("depose_le")
 
   @@index([ownerId])
+  @@index([missionId, categorie])
+  @@index([lotId])
   @@map("piece_jointe")
+}
+
+enum CategoriePiece {
+  PLAN
+  RAPPORT_ETUDE
+  DIAGNOSTIC
+  PIECE_ADMINISTRATIVE
+  PHOTO
+  AUTRE
 }
 
 // ---------------------------------------------------------------------------

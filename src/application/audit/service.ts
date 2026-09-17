@@ -33,6 +33,7 @@ export type EntiteAuditee =
   | 'Offre'
   | 'RapportOffres'
   | 'Attribution'
+  | 'PieceJointe'
   | 'Situation'
 
 export interface EntreeAudit {

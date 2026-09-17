@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { piecesDuDossier } from '../../../../../application/pieces/service'
 import { contexte } from '../../../../session'
 import { listerEntreprises } from '../../../../../application/entreprises/service'
 import { listerConsultationsDuLot } from '../../../../../application/consultations/service'
@@ -33,6 +34,9 @@ export default async function PageConsultationLot({
 
   const entreprisesDejaConsultees = new Set(consultations.map((c) => c.entrepriseId))
 
+  // Ce que l'archive emporterait : les pièces du lot, plus celles de l'opération.
+  const nbPiecesDuLot = (await piecesDuDossier(db, mission.id, lot.id)).length
+
   return (
     <main className="contenu-large">
       <div style={{ marginBottom: 18 }}>
@@ -46,6 +50,15 @@ export default async function PageConsultationLot({
           Entreprises consultées, offres reçues et tableau comparatif de ce lot. Une offre anormalement
           basse est un risque de dérive en chantier : elle se signale, elle ne s’écarte jamais seule.
         </p>
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+          <a className="bouton bouton-primaire" href={`/missions/${mission.id}/consultation/${lot.id}/dossier`} download>
+            Télécharger le dossier de consultation
+          </a>
+          <Link href={`/missions/${mission.id}/pieces`} className="bouton">
+            Pièces du dossier ({nbPiecesDuLot})
+          </Link>
+        </div>
       </div>
 
       <ConsultationLot

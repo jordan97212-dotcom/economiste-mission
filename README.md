@@ -28,6 +28,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 15 | Versions de chiffrage figées et comparatif entre phases (point 10.4) | Livré |
 | 16 | Type d’offre base/variante/option et export Excel du comparatif (point 10.8) | Livré |
 | 17 | Métré par ouvrage, repères réutilisables et export du métré | Livré |
+| 18 | Pièces du dossier (plans, rapports, diagnostics) et dossier de consultation en ZIP (point 10.9) | Livré |
 
 Les trois phases de la spécification sont couvertes, du cadrage à la clôture.
 On crée ou duplique une mission, on saisit son chiffrage au clavier ou par
@@ -566,6 +567,69 @@ se branche dans `src/infrastructure/sources-normes/` sans toucher au métier.
 L'implémentation actuelle, `ReleveManuel`, rend ce qu'on lui donne et annonce
 `automatique: false` — pour que l'interface ne promette pas ce qu'elle ne peut
 pas tenir.
+
+## Les pièces du dossier
+
+Un dossier de consultation ne se limite pas à ce que l'économiste rédige. Plans
+de l'architecte, rapport de sol, diagnostic amiante, notice de sécurité : ces
+documents arrivent d'ailleurs et repartent aux entreprises tels quels.
+
+L'écran *Pièces du dossier*, depuis la fiche de mission, les reçoit. On glisse
+les fichiers, ou on les choisit ; ils partent un par un, et l'écran dit lequel
+a échoué plutôt que de perdre tout l'envoi.
+
+Chaque pièce porte :
+
+- une **nature** — plan, rapport d'étude, diagnostic, pièce administrative,
+  photo, autre — qui décide de son rangement dans l'archive ;
+- un **libellé** lisible, qui la nomme dans l'archive à la place de
+  `PL-002-v3-final.pdf` ;
+- un **indice** de révision. C'est ce qui distingue deux versions du même
+  dessin : sans lui, l'entreprise qui reçoit deux envois successifs ne sait pas
+  lequel fait foi ;
+- un **lot concerné**, ou « toute l'opération » ;
+- une case **« au DCE »**. Décochée, la pièce reste chez vous et ne part pas —
+  règle 8.
+
+### Ce qui est accepté, et ce qui ne l'est pas
+
+Liste blanche : PDF, DWG, DXF, DWF, IFC, RVT, SKP, la bureautique courante, les
+images, ZIP et 7z. Jusqu'à 200 Mo par fichier. Ce qui n'est pas prévu est
+refusé avec son motif, plutôt que stocké au cas où — un dossier de consultation
+ne contient pas d'exécutable.
+
+Les fichiers vont sur le disque, pas en base : un plan d'exécution pèse
+couramment cinquante mégaoctets, et une sauvegarde SQL qui les embarque devient
+inexploitable. Le dossier de dépôt est `donnees/pieces/` par défaut, et se règle
+par la variable `PIECES_RACINE`. Le chemin d'un fichier est dérivé des
+identifiants et d'eux seuls : le nom fourni ne touche jamais le système de
+fichiers.
+
+### Le dossier de consultation
+
+Depuis l'écran de consultation d'un lot, *Télécharger le dossier de
+consultation* produit une archive :
+
+```
+2026-001-Mediatheque-Lot-02-DCE/
+  00-Bordereau-des-pieces.xlsx
+  01-Pieces-ecrites/   CCTP - Lot 02.docx, CCAP.docx…
+  02-Bordereau/        DPGF a remplir - Lot 02.xlsx
+  03-Plans/            Plan de masse - Ind C.pdf
+  04-Rapports-etudes/  …
+```
+
+Les dossiers sont numérotés pour que l'ordre d'ouverture soit celui de la
+lecture, quel que soit l'explorateur de fichiers de l'entreprise.
+
+Le **bordereau des pièces** liste tout ce que l'archive contient, avec l'indice
+de chaque plan et son empreinte SHA-256. C'est ce qui rend une transmission
+vérifiable : deux fichiers d'empreintes différentes ne sont pas le même
+document, et personne ne peut soutenir avoir reçu autre chose.
+
+Le bordereau de prix qui part est la variante **à remplir**, sans vos prix. Le
+contrôle de cohérence tourne avant, comme pour le CCTP seul : un dossier
+incomplet ne part pas par inadvertance.
 
 ## Consultation des entreprises et analyse des offres
 
