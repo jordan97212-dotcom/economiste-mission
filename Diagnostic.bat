@@ -4,6 +4,26 @@ title Diagnostic
 cd /d "%~dp0"
 
 echo.
+echo   === Quelle version tourne ? ===
+rem Deux valeurs : celle des fichiers du dossier, et celle embarquee dans
+rem l image qui tourne. Si elles different, l image n a pas ete reconstruite
+rem apres la mise a jour — et c est la explication de bien des pannes qui
+rem « persistent malgre la correction ».
+if exist "VERSION" (
+  set /p versionDossier=<VERSION
+  call echo    Fichiers du dossier : %%versionDossier%%
+) else (
+  echo    Fichiers du dossier : aucun fichier VERSION ^(version anterieure au 17/09/2026^).
+)
+docker compose exec -T app cat VERSION 2>nul | findstr /r "." >nul
+if errorlevel 1 (
+  echo    Image en cours       : illisible ^(le conteneur ne tourne pas assez longtemps^).
+  echo                           Cherchez « Version de l image » dans le journal plus bas.
+) else (
+  for /f "delims=" %%V in ('docker compose exec -T app cat VERSION 2^>nul') do echo    Image en cours       : %%V
+)
+
+echo.
 echo   === Docker est-il installe et lance ? ===
 docker version --format "   Docker {{.Server.Version}} repond." 2>nul
 if errorlevel 1 echo    NON : lancez Docker Desktop, attendez que la baleine se stabilise.

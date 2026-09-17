@@ -61,6 +61,11 @@ COPY --from=construction /app/.next/static ./.next/static
 COPY --from=construction /app/prisma ./prisma
 COPY --from=construction /app/outils-prisma ./outils-prisma
 
+# La version embarquee dans l'image. Diagnostic.bat la compare a celle du
+# dossier : deux valeurs differentes veulent dire que l'image n'a pas ete
+# reconstruite apres une mise a jour, et cela se voit d'un coup d'oeil.
+COPY VERSION ./VERSION
+
 COPY demarrage.sh ./demarrage.sh
 RUN chmod +x ./demarrage.sh
 

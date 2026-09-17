@@ -6,6 +6,12 @@
 # n'écrase de donnée existante — on peut donc redémarrer autant qu'on veut.
 set -e
 
+# Annoncer la version des le depart : c'est la premiere ligne du journal, et
+# elle dit sans ambiguite quelle image tourne reellement.
+if [ -f ./VERSION ]; then
+  echo "  Version de l'image : $(cat ./VERSION)"
+fi
+
 PRISMA="node ./outils-prisma/node_modules/prisma/build/index.js"
 
 # Docker Compose attend déjà que la base se déclare saine. Cette reprise ne

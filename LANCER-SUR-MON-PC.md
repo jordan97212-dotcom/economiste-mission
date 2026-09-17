@@ -60,6 +60,7 @@ passe : **notez-le quelque part de sûr.**
 | Démarrer | `Demarrer.bat` |
 | Arrêter | `Arreter.bat` |
 | Sauvegarder vos données | `Sauvegarder.bat` |
+| Reconstruire après une mise à jour qui ne prend pas | `Reconstruire.bat` |
 | Comprendre un problème | `Diagnostic.bat` |
 
 Fermer la fenêtre noire n'arrête pas l'application : elle continue en arrière-plan.
@@ -142,7 +143,20 @@ Les trois causes les plus fréquentes :
 ## Mettre à jour
 
 Quand je livre des corrections : télécharger le ZIP à nouveau, remplacer les
-fichiers, relancer `Demarrer.bat`. **Vos données ne bougent pas** — elles vivent
+fichiers, relancer `Demarrer.bat`.
+
+**Vérifiez que la mise à jour est bien prise en compte** : lancez
+`Diagnostic.bat`. Les deux premières lignes affichent la version des fichiers
+du dossier et celle de l'image qui tourne. **Elles doivent être identiques.**
+Si elles diffèrent, l'application tourne encore sur l'ancienne version —
+lancez `Reconstruire.bat`, qui refabrique tout sans réutiliser la moindre
+étape gardée en mémoire par Docker.
+
+C'est le piège le plus coûteux de cette façon de travailler : on remplace les
+fichiers, on relance, et on continue de voir la panne qu'on croyait corrigée.
+Ces deux lignes le disent en une seconde.
+
+**Vos données ne bougent pas** — elles vivent
 dans Docker, pas dans le dossier. Les modifications de structure s'appliquent
 toutes seules au démarrage.
 
