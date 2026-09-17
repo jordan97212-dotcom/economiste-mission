@@ -8,6 +8,14 @@
 
 generator client {
   provider = "prisma-client-js"
+
+  /// Le moteur de requêtes est un binaire natif, choisi selon la version
+  /// d'OpenSSL du système. Laissé à la détection automatique, Prisma se trompe
+  /// parfois au moment de la construction — il a produit un moteur
+  /// « openssl-1.1.x » pour une image qui tourne en « 3.0.x », et le client
+  /// refusait alors de démarrer, sans que rien ne l'ait annoncé avant.
+  /// On embarque donc les deux : celui de la machine, et celui de l'image.
+  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
 }
 
 datasource db {

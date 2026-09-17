@@ -46,6 +46,15 @@ ENV HOSTNAME=0.0.0.0
 COPY --from=construction /app/.next/standalone ./
 COPY --from=construction /app/.next/static ./.next/static
 
+# Le client Prisma et son moteur, en entier. La sortie autonome de Next les
+# emporte déjà, mais elle ne trace que le moteur qu'elle voit référencé : quand
+# plusieurs cibles sont produites, les autres restent en arrière. Or c'est
+# précisément l'autre qui sert, si la détection s'est trompée à la
+# construction. Ces deux lignes coûtent quelques mégaoctets et retirent la
+# question.
+COPY --from=construction /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=construction /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
 # De quoi appliquer les migrations et poser la nomenclature au démarrage : le
 # schéma et ses migrations, puis la ligne de commande Prisma avec la totalité
 # de ses dépendances.

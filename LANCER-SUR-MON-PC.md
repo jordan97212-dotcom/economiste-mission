@@ -140,6 +140,7 @@ Les trois causes les plus fréquentes :
 | Le navigateur affiche `ERR_EMPTY_RESPONSE` | Quelque chose écoute sur le port 3000, mais rien ne répond : l'application redémarre en boucle derrière. Lancez `Diagnostic.bat` — la ligne « Etat des deux services » dira `Restarting` ou `Exited`, et le journal juste en dessous dira pourquoi. Si ce journal parle de `Cannot find module`, l'image est incomplète : `Arreter.bat`, puis `Demarrer.bat` pour la reconstruire. |
 | La fenêtre dit « Pret. » mais aucun navigateur ne s'ouvre | L'application tourne : ouvrez votre navigateur et tapez `http://localhost:3000`. Le script essaie trois façons d'ouvrir le navigateur ; si aucune ne marche, c'est l'association du protocole `http` sous Windows qui est en cause, pas l'application. Mettez l'adresse en favori. |
 | Le journal dit `P3005` — « The database schema is not empty » | Votre base contient des tables, mais Prisma n'y trouve pas la trace de ce qui a déjà été appliqué, et refuse d'y toucher. Lancez `Reparer-base.bat` : il regarde la base et reconstitue cette trace, sans toucher à vos données. Puis `Demarrer.bat`. |
+| Le journal parle de `Query Engine` introuvable | Le moteur de base de données ne correspond pas au système de l'image. L'application embarque désormais les deux variantes ; si le message persiste, lancez `Reconstruire.bat`. |
 | Le port 3000 est déjà utilisé | Un autre programme l'occupe. Me le dire : le changer prend une ligne. |
 
 ## Mettre à jour
