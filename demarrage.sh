@@ -18,9 +18,28 @@ PRISMA="node ./outils-prisma/node_modules/prisma/build/index.js"
 # couvre que le cas où elle accepte les connexions sans être tout à fait prête.
 essai=1
 while [ "$essai" -le 10 ]; do
-  if $PRISMA migrate deploy; then
+  sortie=$($PRISMA migrate deploy 2>&1) && code=0 || code=$?
+  echo "$sortie"
+  if [ "$code" -eq 0 ]; then
     break
   fi
+
+  # P3005 : la base porte un schéma, mais aucun historique de migrations.
+  # Réessayer dix fois n'y changera rien — c'est l'historique qu'il faut
+  # reconstituer. Autant le dire tout de suite et nommer le remède.
+  case "$sortie" in
+    *P3005*)
+      echo ""
+      echo "✗ La base contient déjà des tables, mais aucun historique de migrations."
+      echo "  Réessayer n'y changerait rien : c'est l'historique qu'il faut"
+      echo "  reconstituer, et un outil est prévu pour cela."
+      echo ""
+      echo "  Fermez cette fenêtre, double-cliquez sur Reparer-base.bat,"
+      echo "  puis relancez Demarrer.bat. Aucune donnée n'est touchée."
+      exit 1
+      ;;
+  esac
+
   if [ "$essai" -eq 10 ]; then
     echo ""
     echo "✗ Impossible de préparer la base de données après dix tentatives."

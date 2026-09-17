@@ -60,6 +60,7 @@ COPY --from=construction /app/.next/static ./.next/static
 # déjà, moteur compris.
 COPY --from=construction /app/prisma ./prisma
 COPY --from=construction /app/outils-prisma ./outils-prisma
+COPY --from=construction /app/outils ./outils
 
 # La version embarquee dans l'image. Diagnostic.bat la compare a celle du
 # dossier : deux valeurs differentes veulent dire que l'image n'a pas ete
