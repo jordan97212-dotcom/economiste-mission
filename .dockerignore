@@ -9,3 +9,5 @@ coverage
 dist
 *.log
 tsconfig.tsbuildinfo
+# Les pièces déposées sont montées au démarrage, pas embarquées dans l'image.
+donnees

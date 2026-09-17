@@ -19,6 +19,17 @@ if errorlevel 1 echo    Aucune reponse sur le port 3000.
 echo.
 
 echo.
+echo   === Les pieces deposees ^(plans, rapports^) ===
+if exist "donnees\pieces" (
+  dir /s /b "donnees\pieces" 2>nul | find /c /v "" > "%TEMP%\nbpieces.txt"
+  set /p nbpieces=<"%TEMP%\nbpieces.txt"
+  del "%TEMP%\nbpieces.txt" 2>nul
+  call echo    Dossier present : %%nbpieces%% fichier^(s^).
+) else (
+  echo    Aucun dossier « donnees\pieces » : normal si vous n avez rien depose.
+)
+
+echo.
 echo   === 40 dernieres lignes du journal de l application ===
 docker compose logs --tail 40 app
 

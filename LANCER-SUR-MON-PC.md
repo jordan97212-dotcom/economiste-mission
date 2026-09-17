@@ -71,8 +71,14 @@ Pour revenir dessus, ouvrir <http://localhost:3000> dans le navigateur.
 L'application garde vos données sur votre disque dur. Un disque tombe en panne,
 un PC se fait voler, une fausse manipulation arrive.
 
-**`Sauvegarder.bat` écrit un fichier daté dans le dossier `sauvegardes`.**
-Lancez-le à la fin de chaque séance de travail sérieuse, et **copiez le fichier
+**`Sauvegarder.bat` écrit deux choses dans le dossier `sauvegardes`** : un
+fichier `.sql` daté, qui contient toute la base, et une copie datée des pièces
+déposées — plans, rapports, diagnostics. Ces pièces ne sont pas dans la base :
+ce sont de vrais fichiers, rangés dans le dossier `donnees` à côté de
+l'application. Une sauvegarde qui n'emporterait que le `.sql` laisserait des
+plans référencés mais introuvables.
+
+Lancez-le à la fin de chaque séance de travail sérieuse, et **copiez les deux
 ailleurs** : disque externe, clé USB, ou service de sauvegarde en ligne. Une
 sauvegarde qui dort à côté de l'original ne protège de rien.
 

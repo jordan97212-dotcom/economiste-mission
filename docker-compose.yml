@@ -27,6 +27,13 @@ services:
     environment:
       DATABASE_URL: postgresql://eco:${POSTGRES_PASSWORD:-eco}@db:5432/economiste?schema=public
       SEED_EMAIL: ${SEED_EMAIL:-economiste@local}
+      PIECES_RACINE: /app/donnees/pieces
+    volumes:
+      # Les plans et autres pièces déposées vivent dans le dossier « donnees »,
+      # à côté de l'application. Sans ce montage, ils seraient à l'intérieur du
+      # conteneur et disparaîtraient à la première mise à jour, alors que la
+      # base, elle, continuerait de les référencer.
+      - ./donnees:/app/donnees
     ports:
       # 127.0.0.1 : accessible depuis ce PC uniquement, jamais depuis le réseau.
       - '127.0.0.1:3000:3000'

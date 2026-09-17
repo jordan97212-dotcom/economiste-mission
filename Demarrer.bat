@@ -26,6 +26,7 @@ if %essais% geq 150 goto lent
 set /a reste=150-%essais%
 set /a affichage=%essais% %% 15
 if %affichage%==0 echo   ...toujours en preparation ^(jusqu a %reste% x 2 secondes restantes^)
+if %essais%==30 call :montrerJournal 15
 timeout /t 2 /nobreak >nul
 goto attendre
 
@@ -43,18 +44,30 @@ exit /b 0
 :lent
 echo.
 echo   L application met plus de temps que prevu ^(plus de 5 minutes^).
-echo   Elle continue probablement de se preparer en arriere-plan.
-echo   Ouvrez http://localhost:3000 dans votre navigateur pour verifier,
-echo   ou lancez Diagnostic.bat pour voir ce qui se passe reellement.
+echo   Voici ce qu elle raconte — la cause est presque toujours dans ces lignes :
+echo.
+call :montrerJournal 30
+echo.
+echo   J ouvre quand meme le navigateur sur http://localhost:3000 : si elle
+echo   finit de se preparer, la page apparaitra en rechargeant.
+start "" http://localhost:3000
+echo.
+echo   Si la page reste introuvable, lancez Diagnostic.bat et envoyez la
+echo   fenetre entiere.
 echo.
 pause
 exit /b 0
 
 :erreur
 echo.
-echo   Le demarrage a echoue.
-echo   Verifiez que Docker Desktop est lance (icone baleine, en bas a droite).
-echo   Puis relancez ce fichier. Si cela persiste, lancez Diagnostic.bat
+echo   Le demarrage a echoue avant meme que l application ne se lance.
+echo.
+echo   Cause la plus frequente : Docker Desktop n est pas demarre. Regardez
+echo   l icone baleine en bas a droite, attendez qu elle se stabilise, puis
+echo   relancez ce fichier.
+echo.
+echo   Le message d erreur exact est affiche juste au-dessus : c est lui
+echo   qu il faut lire, ou recopier si vous demandez de l aide.
 echo.
 pause
 exit /b 1
@@ -75,4 +88,13 @@ goto :eof
 :viaPowershell
 powershell -NoProfile -Command "try { (New-Object Net.WebClient).DownloadString('http://localhost:3000') | Out-Null; exit 0 } catch { exit 1 }" >nul 2>nul
 if not errorlevel 1 set PRETE=1
+goto :eof
+
+rem --------------------------------------------------------------------
+rem Les dernieres lignes du journal de l application. Quand le demarrage
+rem traine, la raison y est presque toujours ecrite noir sur blanc ;
+rem l afficher ici evite d avoir a lancer Diagnostic.bat pour la voir.
+rem --------------------------------------------------------------------
+:montrerJournal
+docker compose logs --tail %1 app 2>nul
 goto :eof
