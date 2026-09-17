@@ -750,3 +750,61 @@ textarea:focus {
   left: 0;
   color: var(--color-accent);
 }
+
+/* ---------------------------------- métré --------------------------------- */
+
+/* La feuille de métré s'ouvre sous la ligne d'ouvrage : on la détache du
+   tableau pour qu'on voie tout de suite où l'une finit et l'autre commence. */
+.rangee-metre > td {
+  background: var(--color-surface-alt);
+  padding: 14px 16px 16px;
+  border-left: 3px solid var(--color-accent);
+}
+
+.feuille-metre .grille-metre {
+  background: var(--color-surface);
+}
+
+.rangee-metre .entete-metre {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+/* Une déduction se retranche : elle doit se distinguer au premier coup d'œil. */
+.ligne-deduction > td {
+  background: var(--color-alerte-clair);
+}
+
+.message-avertissement + .message-avertissement {
+  margin-top: 4px;
+}
+
+.quantite-metree {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+/* Quantité issue d'un métré : même allure qu'une cellule, mais elle ouvre la
+   feuille au lieu de se laisser taper. */
+.cellule-metree {
+  width: 100%;
+  text-align: right;
+  font-family: var(--font-mono);
+  background: var(--color-accent-clair);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+  color: var(--color-accent-encre);
+  font-weight: 600;
+}
+
+.cellule-metree:hover {
+  border-color: var(--color-accent);
+}

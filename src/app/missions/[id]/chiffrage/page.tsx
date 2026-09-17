@@ -34,9 +34,14 @@ export default async function PageChiffrage({ params }: { params: Promise<{ id: 
           </p>
           <h1>{chiffrage.mission.nomOperation}</h1>
         </div>
-        <Link href={`/missions/${chiffrage.mission.id}`} className="bouton">
-          Retour à la fiche
-        </Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href={`/missions/${chiffrage.mission.id}/metre`} className="bouton">
+            Repères de métré
+          </Link>
+          <Link href={`/missions/${chiffrage.mission.id}`} className="bouton">
+            Retour à la fiche
+          </Link>
+        </div>
       </div>
 
       <GrilleChiffrage chiffrageInitial={chiffrage} />

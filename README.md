@@ -27,6 +27,7 @@ continu du chiffrage jusqu'à la base de prix personnelle.
 | 14 | Génération du CCTP depuis le DPGF, par appariement des trames | Livré |
 | 15 | Versions de chiffrage figées et comparatif entre phases (point 10.4) | Livré |
 | 16 | Type d’offre base/variante/option et export Excel du comparatif (point 10.8) | Livré |
+| 17 | Métré par ouvrage, repères réutilisables et export du métré | Livré |
 
 Les trois phases de la spécification sont couvertes, du cadrage à la clôture.
 On crée ou duplique une mission, on saisit son chiffrage au clavier ou par
@@ -127,6 +128,8 @@ C'est l'écran où passe l'essentiel du temps de travail.
 - Totaux recalculés à la frappe, avec les mêmes fonctions de domaine que le
   serveur : l'affichage ne peut pas diverger de ce qui sera persisté.
 - Coefficient hérité affiché en gris clair, coefficient propre à la ligne en noir.
+- Le bouton **Σ** de chaque ouvrage ouvre sa feuille de métré : la quantité est
+  alors calculée, plus tapée. Voir « Le métré » plus bas.
 
 ### Ce que le collage demande avant d'écrire
 
@@ -155,6 +158,82 @@ Un détail qui a son importance : `02.01` se lit aussi comme le nombre 2,01, et
 tombait alors pile dans la plage d'un coefficient. En français la décimale
 s'écrit avec une virgule, donc un séparateur point désigne un code — c'est la
 règle appliquée, et elle a son test.
+
+## Le métré
+
+Jusqu'ici la quantité d'un ouvrage se tapait : 142,50 m² arrivaient d'une feuille
+de papier, d'un tableur, ou de nulle part. Le métré la **calcule**, et garde la
+trace de ce qui a été mesuré. C'est une pièce justificative : le jour où le
+maître d'ouvrage demande d'où sortent ces 142,50 m², la réponse existe.
+
+Le bouton **Σ** de la colonne d'actions ouvre la feuille sous la ligne
+d'ouvrage. Une ligne par mesure, comme sur le papier : ce qu'on mesure, combien
+de fois, et ses dimensions.
+
+- Le résultat d'une ligne est le produit de ce qui est renseigné. Une longueur
+  seule donne un linéaire, longueur × largeur une surface, et ainsi de suite.
+  Le **nombre** compte les répétitions sans ajouter de dimension : trois portes
+  restent trois unités.
+- Une ligne peut être une **déduction** — la baie dans le mur — et elle se
+  retranche. Elle est teintée pour qu'on la voie au premier coup d'œil.
+- Le total se recalcule à la frappe, avec le même code que le serveur.
+- Dès qu'un ouvrage porte un métré, **sa quantité n'est plus modifiable à la
+  main**. Elle en est le reflet ; laisser les deux se saisir, c'est les laisser
+  diverger jusqu'au prochain recalcul, où le métré gagnerait sans prévenir.
+  Supprimer le métré rend la main, en conservant la dernière quantité calculée.
+
+### Les repères — mesurer une fois, reprendre partout
+
+Un repère est un sous-total nommé de la mission : « surface étage courant »,
+« linéaire de façade ». On le mesure une fois, dans son propre écran
+(*Repères de métré*, depuis le chiffrage), et on le **rappelle** dans autant
+d'ouvrages qu'on veut.
+
+Un rappel se multiplie comme les autres facteurs : rappeler une surface et
+donner une hauteur donne un volume. C'est voulu — c'est ainsi qu'on passe d'une
+emprise à un volume de dalle sans la remesurer.
+
+Quand le repère change, tous les ouvrages qui le rappellent suivent, dans la
+foulée. L'application réévalue toute la mission à chaque modification plutôt que
+ce qu'elle croit touché : un métré à jour à côté d'un métré périmé serait pire
+que pas de métré du tout.
+
+Deux refus, plutôt que deux silences :
+
+- Un repère **encore rappelé ne se supprime pas**. Le message dit par quelles
+  feuilles il l'est.
+- Un rappel qui **tournerait en rond** est refusé à l'enregistrement. Accepter
+  puis signaler priverait de quantité tous les ouvrages en aval, loin de
+  l'endroit où l'erreur a été commise.
+
+### Ce que l'application vérifie sans bloquer
+
+Une unité a un degré : `ml` une dimension, `m²` deux, `m³` trois. Quand les
+mesures ne donnent pas ce que l'unité annonce — une surface pour un ouvrage au
+mètre linéaire —, la feuille le dit. C'est un **avertissement**, pas un refus :
+l'économiste garde la main, il a parfois ses raisons. Même chose pour un métré
+qui additionne des surfaces et des volumes.
+
+Deux cas, en revanche, ne donnent aucune quantité plutôt qu'une fausse :
+
+- Un **total négatif** — les déductions dépassent les mesures. Rien n'est
+  reporté, et la feuille le dit.
+- Une **ligne non calculable** — un rappel dont le repère a disparu. Le total
+  entier devient indisponible : un total amputé d'une ligne serait pire, parce
+  qu'il aurait l'air juste.
+
+Une mesure négative est refusée à la saisie : ce qu'on veut, c'est la case
+« déduction ».
+
+### L'export
+
+Depuis l'écran des repères, *Exporter le métré* produit un classeur à deux
+feuilles : le **métré**, lot par lot et ouvrage par ouvrage, avec chaque mesure
+et la quantité retenue ; les **repères**, avec leur détail et le nombre de
+feuilles qui les rappellent. Les mesures y sont des nombres, pas du texte.
+
+Aucun montant n'y figure. Le métré justifie des quantités, pas des prix — c'est
+le DPGF qui porte les seconds.
 
 ## Base de prix personnelle
 

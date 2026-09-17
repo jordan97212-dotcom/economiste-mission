@@ -106,6 +106,7 @@ Toutes les racines d'agrégat portent `owner_id` : `Mission`, `PrixReference`, `
 - **`corps_etat`** — nomenclature TCE du §4, pré-remplie par un *seed*, éditable, avec `ordre` et `masque` pour la note climat tropical.
 - **`chiffrage_version`** **[AJOUT, voir §9.4]** — instantané figé du chiffrage d'une mission à une phase donnée (APS, APD, PRO, DCE). Sans lui, « écart vs estimatif initial » du §5.6 n'a pas de référent stable.
 - **`document_genere`** — trace des exports produits (type, phase, date, empreinte), pour retrouver quel DPGF a réellement été envoyé.
+- **`ligne_metre`**, **`repere_metre`** **[AJOUT]** — le métré d'un ouvrage. Une `ligne_metre` appartient soit à un `poste`, soit à un `repere_metre` (sous-total nommé, portée mission) ; elle porte `nombre`, `longueur`, `largeur`, `hauteur` en `NUMERIC(14,3)`, un indicateur `deduction`, et pour une ligne de rappel un `rappel_repere_id` en `ON DELETE RESTRICT` — un repère encore rappelé ne se supprime pas. La quantité du `poste` devient alors une valeur dérivée, écrite par l'application et refusée à la saisie directe : c'est le même principe que `montant_ht`, appliqué un cran plus haut.
 
 ### Types SQL retenus
 

@@ -22,6 +22,17 @@ function texte(valeur: { toString(): string } | null | undefined): string | null
   return valeur === null || valeur === undefined ? null : valeur.toString()
 }
 
+export class QuantiteCalculee extends Error {
+  constructor(designations: readonly string[]) {
+    super(
+      `La quantité de ${designations.length} ouvrage(s) vient de leur métré : ${designations.join(
+        ', ',
+      )}. Modifiez le métré, ou supprimez-le pour reprendre la saisie directe.`,
+    )
+    this.name = 'QuantiteCalculee'
+  }
+}
+
 export class MissionIntrouvable extends Error {
   constructor(id: string) {
     super(`Mission introuvable ou inaccessible : ${id}`)
@@ -45,6 +56,7 @@ interface PosteBrut {
   sourcePrix: string
   dateSourcePrix: Date | null
   texteCctp: Prisma.JsonValue | null
+  _count?: { lignesMetre: number }
 }
 
 interface ResultatCalcul {
@@ -207,6 +219,7 @@ function aplatir(postes: readonly PosteBrut[]): PosteDTO[] {
         sourcePrix: poste.sourcePrix,
         dateSourcePrix: poste.dateSourcePrix?.toISOString() ?? null,
         aTexteCctp: poste.texteCctp !== null,
+        aMetre: (poste._count?.lignesMetre ?? 0) > 0,
       })
       descendre(poste.id, profondeur + 1)
     }
@@ -271,7 +284,7 @@ export async function chargerChiffrage(client: PrismaClient, missionId: string):
   const lots = await client.lot.findMany({
     where: { missionId },
     orderBy: [{ ordre: 'asc' }, { numero: 'asc' }],
-    include: { postes: true },
+    include: { postes: { include: { _count: { select: { lignesMetre: true } } } } },
   })
 
   const lotsDTO: LotDTO[] = lots.map((lot) => ({
@@ -347,6 +360,18 @@ export async function enregistrerModifications(
     const refuses = identifiants.filter((id) => !ensemble.has(id))
     if (refuses.length > 0) {
       throw new Error(`Postes hors de la mission : ${refuses.join(', ')}`)
+    }
+
+    // Une quantité calculée par un métré ne se retape pas : les deux valeurs
+    // divergeraient en silence, et c'est le métré qui gagnerait au recalcul
+    // suivant. Mieux vaut le dire que le laisser arriver.
+    const quantitesDemandees = modifications.filter((m) => m.quantite !== undefined).map((m) => m.id)
+    if (quantitesDemandees.length > 0) {
+      const metres = await client.poste.findMany({
+        where: { id: { in: quantitesDemandees }, lignesMetre: { some: {} } },
+        select: { designation: true },
+      })
+      if (metres.length > 0) throw new QuantiteCalculee(metres.map((p) => p.designation))
     }
 
     const avant = await client.poste.findMany({

@@ -24,6 +24,7 @@ function poste(partiel: Partial<PosteDTO> & { id: string; designation: string })
     sourcePrix: 'SAISIE_MANUELLE',
     dateSourcePrix: null,
     aTexteCctp: true,
+    aMetre: false,
     ...partiel,
   }
 }

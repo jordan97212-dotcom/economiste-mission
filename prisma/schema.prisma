@@ -256,6 +256,7 @@ model Mission {
   piecesJointes       PieceJointe[]
   documentsGeneres    DocumentGenere[]
   prixIssus           PrixReference[]      @relation("PrixOrigineMission")
+  reperesMetre        RepereMetre[]
 
   @@unique([ownerId, reference])
   @@index([ownerId, statut])
@@ -347,6 +348,7 @@ model Poste {
 
   lignesOffre   LigneOffre[]
   piecesJointes PieceJointe[]
+  lignesMetre   LigneMetre[]
 
   @@index([lotId, ordre])
   @@index([parentId])
@@ -699,4 +701,71 @@ model JournalAudit {
 
   @@index([ownerId, entite, entiteId])
   @@map("journal_audit")
+}
+
+// --- Métré — spec §5.2, point 10.12 -----------------------------------------
+// La quantité d'un ouvrage peut être calculée plutôt que tapée. Une feuille de
+// métré est une pièce justificative : elle dit d'où sortent les 142,50 m².
+
+enum TypeLigneMetre {
+  MESURE
+  RAPPEL
+}
+
+/// Sous-total nommé, réutilisable dans plusieurs ouvrages de la mission.
+model RepereMetre {
+  id        String  @id @default(cuid())
+  missionId String  @map("mission_id")
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  nom   String
+  unite Unite?
+  ordre Int    @default(0)
+
+  /// Valeur calculée, écrite par l'application — jamais saisie.
+  valeur Decimal? @db.Decimal(16, 3)
+
+  lignes  LigneMetre[] @relation("LignesDuRepere")
+  rappels LigneMetre[] @relation("RappelsDuRepere")
+
+  creeLe    DateTime @default(now()) @map("cree_le")
+  modifieLe DateTime @updatedAt @map("modifie_le")
+
+  @@unique([missionId, nom])
+  @@index([missionId, ordre])
+  @@map("repere_metre")
+}
+
+/// Une ligne de mesure. Elle appartient soit à un ouvrage, soit à un repère.
+model LigneMetre {
+  id    String         @id @default(cuid())
+  type  TypeLigneMetre @default(MESURE)
+  ordre Int            @default(0)
+
+  posteId String? @map("poste_id")
+  poste   Poste?  @relation(fields: [posteId], references: [id], onDelete: Cascade)
+
+  repereId String?      @map("repere_id")
+  repere   RepereMetre? @relation("LignesDuRepere", fields: [repereId], references: [id], onDelete: Cascade)
+
+  /// Repère rappelé par une ligne de type RAPPEL. Restrict : on ne supprime pas
+  /// un repère dont une feuille dépend encore.
+  rappelRepereId String?      @map("rappel_repere_id")
+  rappelRepere   RepereMetre? @relation("RappelsDuRepere", fields: [rappelRepereId], references: [id], onDelete: Restrict)
+
+  /// Localisation ou objet mesuré : « RDC — mur nord ».
+  libelle String @default("")
+
+  /// Vrai quand la ligne se retranche du total (baie dans un mur).
+  deduction Boolean @default(false)
+
+  nombre   Decimal? @db.Decimal(14, 3)
+  longueur Decimal? @db.Decimal(14, 3)
+  largeur  Decimal? @db.Decimal(14, 3)
+  hauteur  Decimal? @db.Decimal(14, 3)
+
+  @@index([posteId, ordre])
+  @@index([repereId, ordre])
+  @@index([rappelRepereId])
+  @@map("ligne_metre")
 }

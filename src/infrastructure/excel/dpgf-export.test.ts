@@ -26,6 +26,7 @@ function ouvrage(partiel: Partial<PosteDTO> & { id: string; designation: string 
     sourcePrix: 'SAISIE_MANUELLE',
     dateSourcePrix: null,
     aTexteCctp: false,
+    aMetre: false,
     ...partiel,
   }
 }

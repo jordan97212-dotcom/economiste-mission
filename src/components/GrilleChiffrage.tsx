@@ -31,6 +31,13 @@ import {
   actionAppliquerPrix,
   type PropositionPrixDTO,
 } from '../app/missions/actions-prix'
+import {
+  actionChargerMetre,
+  actionEnregistrerMetre,
+  actionSupprimerMetre,
+} from '../app/missions/actions-metre'
+import type { MetrePosteDTO, SaisieLigneMetre } from '../application/dto'
+import { FeuilleMetre } from './FeuilleMetre'
 
 const COLONNES: readonly ColonneCollable[] = [
   'code',
@@ -61,6 +68,7 @@ export function GrilleChiffrage({ chiffrageInitial }: { chiffrageInitial: Chiffr
   const [ligneActive, setLigneActive] = useState<string | null>(null)
 
   const [assistance, setAssistance] = useState<EtatAssistance | null>(null)
+  const [metres, setMetres] = useState<ReadonlyMap<string, MetrePosteDTO>>(new Map())
   const [collageEnAttente, setCollageEnAttente] = useState<CollageEnAttente | null>(null)
 
   const enAttente = useRef(new Map<string, ModificationPoste>())
@@ -254,6 +262,57 @@ export function GrilleChiffrage({ chiffrageInitial }: { chiffrageInitial: Chiffr
     [lignesPlates],
   )
 
+  // Une carte des feuilles ouvertes : on garde le miroir dans une référence pour
+  // décider d'ouvrir ou de fermer sans dépendre d'un état déjà périmé.
+  const metresRef = useRef<ReadonlyMap<string, MetrePosteDTO>>(metres)
+  metresRef.current = metres
+
+  const basculerMetre = useCallback(
+    async (posteId: string) => {
+      if (metresRef.current.has(posteId)) {
+        setMetres((precedents) => {
+          const copie = new Map(precedents)
+          copie.delete(posteId)
+          return copie
+        })
+        return
+      }
+      try {
+        const metre = await actionChargerMetre(mission.id, posteId)
+        setMetres((precedents) => new Map(precedents).set(posteId, metre))
+      } catch (erreur) {
+        setMessageErreur(erreur instanceof Error ? erreur.message : 'Métré illisible.')
+      }
+    },
+    [mission.id],
+  )
+
+  const enregistrerMetre = useCallback(
+    async (posteId: string, lignes: SaisieLigneMetre[]) => {
+      const retour = await actionEnregistrerMetre(mission.id, posteId, lignes)
+      setMetres((precedents) => new Map(precedents).set(posteId, retour.metre))
+      setChiffrage(retour.chiffrage)
+    },
+    [mission.id],
+  )
+
+  const supprimerMetre = useCallback(
+    async (posteId: string) => {
+      try {
+        const frais = await actionSupprimerMetre(mission.id, posteId)
+        setChiffrage(frais)
+        setMetres((precedents) => {
+          const copie = new Map(precedents)
+          copie.delete(posteId)
+          return copie
+        })
+      } catch (erreur) {
+        setMessageErreur(erreur instanceof Error ? erreur.message : 'Suppression impossible.')
+      }
+    },
+    [mission.id],
+  )
+
   const gererTouche = useCallback(
     (evenement: React.KeyboardEvent, posteId: string, colonne: ColonneCollable): void => {
       if (evenement.key === 'ArrowDown' || evenement.key === 'Enter') {
@@ -392,6 +451,10 @@ export function GrilleChiffrage({ chiffrageInitial }: { chiffrageInitial: Chiffr
             onDeplacer={(posteId, sens) =>
               void appelerAction(() => actionDeplacerPoste(mission.id, posteId, sens))
             }
+            metres={metres}
+            onBasculerMetre={basculerMetre}
+            onEnregistrerMetre={enregistrerMetre}
+            onSupprimerMetre={supprimerMetre}
           />
         )
       })}
@@ -454,6 +517,10 @@ interface ProprietesLot {
   onAjouter: (type: 'SOUS_LOT' | 'OUVRAGE', apres: string | null) => void
   onSupprimer: (posteId: string) => void
   onDeplacer: (posteId: string, sens: 'haut' | 'bas' | 'indenter' | 'desindenter') => void
+  metres: ReadonlyMap<string, MetrePosteDTO>
+  onBasculerMetre: (posteId: string) => void
+  onEnregistrerMetre: (posteId: string, lignes: SaisieLigneMetre[]) => Promise<void>
+  onSupprimerMetre: (posteId: string) => void
 }
 
 function LotGrille({
@@ -471,6 +538,10 @@ function LotGrille({
   onAjouter,
   onSupprimer,
   onDeplacer,
+  metres,
+  onBasculerMetre,
+  onEnregistrerMetre,
+  onSupprimerMetre,
 }: ProprietesLot) {
   const coefficientEffectifLot = lot.coefficientLocal ?? coefficientMission
 
@@ -506,7 +577,7 @@ function LotGrille({
               <th style={{ width: 82, textAlign: 'right' }}>Coef.</th>
               <th style={{ width: 110, textAlign: 'right' }}>PU final HT</th>
               <th style={{ width: 130, textAlign: 'right' }}>Montant HT</th>
-              <th style={{ width: 132 }} />
+              <th style={{ width: 160 }} />
             </tr>
           </thead>
           <tbody>
@@ -528,6 +599,10 @@ function LotGrille({
                 onAjouter={onAjouter}
                 onSupprimer={onSupprimer}
                 onDeplacer={onDeplacer}
+                metre={metres.get(poste.id)}
+                onBasculerMetre={onBasculerMetre}
+                onEnregistrerMetre={onEnregistrerMetre}
+                onSupprimerMetre={onSupprimerMetre}
               />
             ))}
           </tbody>
@@ -576,6 +651,10 @@ interface ProprietesLigne {
   onAjouter: (type: 'SOUS_LOT' | 'OUVRAGE', apres: string | null) => void
   onSupprimer: (posteId: string) => void
   onDeplacer: (posteId: string, sens: 'haut' | 'bas' | 'indenter' | 'desindenter') => void
+  metre: MetrePosteDTO | undefined
+  onBasculerMetre: (posteId: string) => void
+  onEnregistrerMetre: (posteId: string, lignes: SaisieLigneMetre[]) => Promise<void>
+  onSupprimerMetre: (posteId: string) => void
 }
 
 function LignePoste({
@@ -594,6 +673,10 @@ function LignePoste({
   onAjouter,
   onSupprimer,
   onDeplacer,
+  metre,
+  onBasculerMetre,
+  onEnregistrerMetre,
+  onSupprimerMetre,
 }: ProprietesLigne) {
   const estSousLot = poste.type === 'SOUS_LOT'
   const classes = [estSousLot ? 'ligne-sous-lot' : '', active ? 'ligne-selectionnee' : '']
@@ -608,6 +691,7 @@ function LignePoste({
   })
 
   return (
+    <>
     <tr className={classes}>
       <td>
         <input
@@ -668,6 +752,18 @@ function LignePoste({
       <td>
         {estSousLot ? (
           <span className="cellule-calculee" />
+        ) : poste.aMetre ? (
+          // La quantité est le reflet du métré : la laisser modifiable ici, ce
+          // serait laisser les deux diverger jusqu'au prochain recalcul.
+          <button
+            type="button"
+            className="cellule cellule-chiffre cellule-metree"
+            title="Quantité calculée par le métré — ouvrir la feuille"
+            aria-label="Quantité calculée par le métré"
+            onClick={() => onBasculerMetre(poste.id)}
+          >
+            {formaterQuantite(poste.quantite) || '—'}
+          </button>
         ) : (
           <input
             {...proprietesCommunes('quantite')}
@@ -772,6 +868,27 @@ function LignePoste({
           >
             ←
           </button>
+          {estSousLot ? null : (
+            <button
+              type="button"
+              className="bouton bouton-discret"
+              style={
+                poste.aMetre
+                  ? { background: 'var(--color-accent-clair)', borderColor: 'transparent' }
+                  : undefined
+              }
+              title={
+                poste.aMetre
+                  ? 'Feuille de métré de cet ouvrage'
+                  : 'Calculer la quantité par un métré'
+              }
+              aria-label="Feuille de métré"
+              aria-expanded={metre !== undefined}
+              onClick={() => onBasculerMetre(poste.id)}
+            >
+              Σ
+            </button>
+          )}
           <button
             type="button"
             className="bouton bouton-discret"
@@ -791,5 +908,39 @@ function LignePoste({
         </div>
       </td>
     </tr>
+
+    {metre ? (
+      <tr className="rangee-metre">
+        <td colSpan={9}>
+          <div className="entete-metre">
+            <div>
+              <p className="surtitre">Feuille de métré</p>
+              <strong>{poste.designation || 'Ouvrage sans désignation'}</strong>
+            </div>
+            <button
+              type="button"
+              className="bouton bouton-discret"
+              onClick={() => onBasculerMetre(poste.id)}
+            >
+              Fermer
+            </button>
+          </div>
+          <FeuilleMetre
+            lignes={metre.lignes}
+            reperes={metre.reperes}
+            unite={poste.unite}
+            enregistrer={(lignes) => onEnregistrerMetre(poste.id, lignes)}
+            supprimer={
+              metre.lignes.length > 0
+                ? async () => {
+                    onSupprimerMetre(poste.id)
+                  }
+                : undefined
+            }
+          />
+        </td>
+      </tr>
+    ) : null}
+    </>
   )
 }
