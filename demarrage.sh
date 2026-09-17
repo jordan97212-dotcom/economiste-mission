@@ -6,7 +6,7 @@
 # n'écrase de donnée existante — on peut donc redémarrer autant qu'on veut.
 set -e
 
-PRISMA="node ./node_modules/prisma/build/index.js"
+PRISMA="node ./outils-prisma/node_modules/prisma/build/index.js"
 
 # Docker Compose attend déjà que la base se déclare saine. Cette reprise ne
 # couvre que le cas où elle accepte les connexions sans être tout à fait prête.
@@ -20,6 +20,10 @@ while [ "$essai" -le 10 ]; do
     echo "✗ Impossible de préparer la base de données après dix tentatives."
     echo "  L'application ne démarre pas plutôt que de travailler sur un"
     echo "  schéma incertain. Voir LANCER-SUR-MON-PC.md, section « Si ça coince »."
+    echo ""
+    echo "  Si les lignes ci-dessus disent « Cannot find module », ce n'est pas"
+    echo "  la base qui est en cause : c'est l'image qui est incomplète, et il"
+    echo "  faut la reconstruire (Arreter.bat puis Demarrer.bat)."
     exit 1
   fi
   echo "  nouvelle tentative dans 3 s… (${essai}/10)"

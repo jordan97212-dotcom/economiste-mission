@@ -24,7 +24,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npx prisma generate \
  && npm run build \
  && npx esbuild prisma/seed.ts --bundle --platform=node --format=esm \
-      --external:@prisma/client --outfile=prisma/seed.mjs
+      --external:@prisma/client --outfile=prisma/seed.mjs \
+ && node outils/rassembler-prisma.mjs /app/outils-prisma/node_modules
 
 # --- 3. Exécution -----------------------------------------------------------
 FROM node:22-bookworm-slim AS execution
@@ -45,12 +46,20 @@ ENV HOSTNAME=0.0.0.0
 COPY --from=construction /app/.next/standalone ./
 COPY --from=construction /app/.next/static ./.next/static
 
-# De quoi appliquer les migrations et poser la nomenclature au premier
-# démarrage : le schéma, les migrations, le client Prisma et son moteur.
+# De quoi appliquer les migrations et poser la nomenclature au démarrage : le
+# schéma et ses migrations, puis la ligne de commande Prisma avec la totalité
+# de ses dépendances.
+#
+# Ces dépendances étaient recopiées à la main — prisma, @prisma, .prisma — et
+# la liste était incomplète : @prisma/config réclame « effect », qui ne s'y
+# trouvait pas. La CLI mourait au démarrage, dix fois de suite, et le conteneur
+# redémarrait en boucle derrière un port ouvert. Un script calcule désormais la
+# fermeture réelle de l'arbre installé, ce qui survit aux montées de version.
+#
+# Le client Prisma, lui, n'est pas ici : la sortie autonome de Next l'emporte
+# déjà, moteur compris.
 COPY --from=construction /app/prisma ./prisma
-COPY --from=construction /app/node_modules/prisma ./node_modules/prisma
-COPY --from=construction /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=construction /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=construction /app/outils-prisma ./outils-prisma
 
 COPY demarrage.sh ./demarrage.sh
 RUN chmod +x ./demarrage.sh
