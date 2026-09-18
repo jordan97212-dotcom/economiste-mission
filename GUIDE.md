@@ -18,7 +18,7 @@ ne se mélangent pas.
 
 | Onglet | Ce qu'on y trouve |
 | --- | --- |
-| **Tableau de bord** | Toutes vos missions, par statut |
+| **Tableau de bord** | Toutes vos missions, par statut — et l'archive, repliée en bas |
 | **Nouvelle mission** | Créer une opération |
 | **Base de prix** | Vos prix unitaires, toutes opérations confondues |
 | **Trames** | Vos textes de CCTP réutilisables |
@@ -326,7 +326,35 @@ Sans attribution, une situation de travaux n'aurait aucune base.
   moment le plus rentable de toute la mission : les prix du marché réel, ceux
   qui ont vraiment été payés, viennent nourrir votre base pour l'opération
   suivante. Vous cochez ce que vous retenez.
-- **L'archivage** de l'opération.
+- **L'archivage** de l'opération — voir juste en dessous.
+
+### 3.12 Ranger et supprimer
+
+*Tableau de bord → bouton **Archiver** sur la ligne de la mission.*
+
+Une mission archivée quitte le tableau de bord et cesse d'être comptée dans
+« En cours ». Elle n'est pas perdue pour autant : son chiffrage, ses offres et
+ses pièces restent intacts, son adresse continue de fonctionner, et **Sortir de
+l'archive** la remet exactement où elle était.
+
+L'archivage est volontairement distinct du statut. « Terminée » dit où en est
+l'affaire ; archiver dit seulement que vous ne voulez plus la voir. Sans cette
+séparation, il faudrait déclarer une opération abandonnée pour désencombrer
+l'écran, et votre suivi mentirait.
+
+Les missions rangées sont regroupées sous **Archives**, replié en bas du tableau
+de bord.
+
+**La suppression n'est offerte que depuis l'archive.** Il faut donc ranger une
+mission avant de pouvoir l'effacer : un geste délibéré s'interpose entre le
+tableau de bord et une perte irréversible. Supprimer efface les lots, les postes,
+le chiffrage, les offres **et les fichiers déposés sur le disque**. Rien n'en
+revient.
+
+> Si vous avez supprimé des missions avec une version antérieure à
+> `2026-09-18`, leurs fichiers sont restés dans `donnees\pieces` : l'ancienne
+> version n'effaçait que les lignes en base. Ils ne gênent rien, mais ils
+> occupent de la place et vos sauvegardes les recopient.
 
 ---
 

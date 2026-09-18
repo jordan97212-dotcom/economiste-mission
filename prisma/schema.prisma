@@ -229,6 +229,12 @@ model Mission {
   dateFinPrevue DateTime?     @map("date_fin_prevue")
   statut        StatutMission @default(PROSPECT)
 
+  /// Mise sur l'étagère. Distincte du statut : « terminée » dit où en est
+  /// l'affaire, l'archivage dit seulement qu'on ne veut plus la voir sur le
+  /// tableau de bord. Sans ce champ, il faudrait déclarer une mission abandonnée
+  /// pour désencombrer l'écran — et le suivi mentirait.
+  archiveeLe DateTime? @map("archivee_le")
+
   honorairesMissionHt BigInt?          @map("honoraires_mission_ht") // centimes
   modeFacturation     ModeFacturation? @map("mode_facturation")
 
@@ -260,6 +266,7 @@ model Mission {
 
   @@unique([ownerId, reference])
   @@index([ownerId, statut])
+  @@index([ownerId, archiveeLe])
   @@map("mission")
 }
 

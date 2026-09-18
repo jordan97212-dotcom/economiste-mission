@@ -7,6 +7,7 @@ import {
   actionModifierLot,
   actionSupprimerLot,
   actionDupliquerMission,
+  actionArchiverMission,
   actionSupprimerMission,
 } from '../actions'
 import {
@@ -53,6 +54,7 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
         <div>
           <p className="surtitre mono">
             {mission.reference} · {LIBELLES_STATUT[mission.statut] ?? mission.statut}
+            {mission.archiveeLe ? ' · Archivée' : ''}
           </p>
           <h1>{mission.nomOperation}</h1>
           <p className="attenue" style={{ fontSize: 14, marginTop: 4 }}>
@@ -367,15 +369,25 @@ export default async function PageMission({ params }: { params: Promise<{ id: st
         <div className="carte" style={{ marginTop: 10, borderColor: '#f3c2bd' }}>
           <div className="carte-corps" style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
             <p className="attenue" style={{ fontSize: 13.5, margin: 0, maxWidth: '60ch' }}>
-              Supprimer la mission efface ses lots, ses postes et tout son chiffrage. Cette action ne
-              peut pas être annulée.
+              Supprimer la mission efface ses lots, ses postes, son chiffrage et les pièces déposées
+              sur le disque. Cette action ne peut pas être annulée. Pour désencombrer le tableau de
+              bord sans rien perdre, archivez-la plutôt.
             </p>
-            <form action={actionSupprimerMission}>
-              <input type="hidden" name="id" value={mission.id} />
-              <button type="submit" className="bouton bouton-danger">
-                Supprimer la mission
-              </button>
-            </form>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <form action={actionArchiverMission}>
+                <input type="hidden" name="id" value={mission.id} />
+                <input type="hidden" name="archivee" value={mission.archiveeLe ? 'non' : 'oui'} />
+                <button type="submit" className="bouton">
+                  {mission.archiveeLe ? 'Sortir de l’archive' : 'Archiver la mission'}
+                </button>
+              </form>
+              <form action={actionSupprimerMission}>
+                <input type="hidden" name="id" value={mission.id} />
+                <button type="submit" className="bouton bouton-danger">
+                  Supprimer la mission
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </details>

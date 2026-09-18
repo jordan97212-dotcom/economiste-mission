@@ -7,6 +7,7 @@ import {
   creerMission,
   modifierMission,
   dupliquerMission,
+  archiverMission,
   supprimerMission,
   type EntreeMission,
 } from '../../application/missions/service'
@@ -103,6 +104,13 @@ export async function actionDupliquerMission(donnees: FormData): Promise<void> {
   })
   revalidatePath('/')
   redirect(`/missions/${copie}`)
+}
+
+export async function actionArchiverMission(donnees: FormData): Promise<void> {
+  const { db } = await contexte()
+  await archiverMission(db, lire(donnees, 'id'), lire(donnees, 'archivee') === 'oui')
+  revalidatePath('/')
+  revalidatePath(`/missions/${lire(donnees, 'id')}`)
 }
 
 export async function actionSupprimerMission(donnees: FormData): Promise<void> {

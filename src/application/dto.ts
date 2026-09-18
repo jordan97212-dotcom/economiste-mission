@@ -25,6 +25,8 @@ export interface MissionDTO {
   readonly dateDebut: string | null
   readonly dateFinPrevue: string | null
   readonly statut: string
+  /** Date de mise sur l'étagère, nulle tant que la mission est active. */
+  readonly archiveeLe: string | null
   readonly honorairesMissionHt: string | null
   readonly modeFacturation: string | null
   readonly coefficientLocalDefaut: string

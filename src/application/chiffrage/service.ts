@@ -244,6 +244,7 @@ export function missionVersDTO(mission: {
   dateDebut: Date | null
   dateFinPrevue: Date | null
   statut: string
+  archiveeLe: Date | null
   honorairesMissionHt: bigint | null
   modeFacturation: string | null
   coefficientLocalDefaut: Prisma.Decimal
@@ -267,6 +268,7 @@ export function missionVersDTO(mission: {
     dateDebut: mission.dateDebut?.toISOString() ?? null,
     dateFinPrevue: mission.dateFinPrevue?.toISOString() ?? null,
     statut: mission.statut,
+    archiveeLe: mission.archiveeLe?.toISOString() ?? null,
     honorairesMissionHt: mission.honorairesMissionHt?.toString() ?? null,
     modeFacturation: mission.modeFacturation,
     coefficientLocalDefaut: mission.coefficientLocalDefaut.toString(),

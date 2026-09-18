@@ -48,6 +48,7 @@ const CHIFFRAGE: ChiffrageDTO = {
     dateDebut: null,
     dateFinPrevue: null,
     statut: 'EN_COURS',
+  archiveeLe: null,
     honorairesMissionHt: null,
     modeFacturation: null,
     coefficientLocalDefaut: '1.2500',

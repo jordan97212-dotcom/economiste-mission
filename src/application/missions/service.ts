@@ -1,6 +1,7 @@
 import { Prisma, type PrismaClient } from '@prisma/client'
 import { MissionIntrouvable, recalculerMission } from '../chiffrage/service'
 import { difference, journaliser } from '../audit/service'
+import { supprimerFichier } from '../../infrastructure/fichiers/stockage'
 
 /** Champs de mission dont une modification engage un chiffrage. */
 const CHAMPS_MISSION_SUIVIS = {
@@ -84,9 +85,16 @@ export async function genererReference(client: PrismaClient, annee = new Date().
   return `${prefixe}${String(maximum + 1).padStart(3, '0')}`
 }
 
-export async function listerMissions(client: PrismaClient) {
+/**
+ * Les missions du tableau de bord. L'archive en est exclue par défaut : c'est
+ * tout l'intérêt de l'archivage.
+ */
+export async function listerMissions(client: PrismaClient, options: { archivees?: boolean } = {}) {
   return client.mission.findMany({
-    orderBy: [{ statut: 'asc' }, { reference: 'desc' }],
+    where: options.archivees ? { NOT: { archiveeLe: null } } : { archiveeLe: null },
+    orderBy: options.archivees
+      ? [{ archiveeLe: 'desc' }]
+      : [{ statut: 'asc' }, { reference: 'desc' }],
     select: {
       id: true,
       reference: true,
@@ -99,9 +107,42 @@ export async function listerMissions(client: PrismaClient) {
       honorairesMissionHt: true,
       coefficientLocalDefaut: true,
       surfaceShon: true,
+      archiveeLe: true,
       _count: { select: { lots: true } },
       lots: { select: { montantEstimeHt: true } },
     },
+  })
+}
+
+/**
+ * Range une mission, ou la ressort. L'archivage ne touche ni au statut ni aux
+ * données : une mission archivée reste consultable par son adresse, et tout
+ * revient en place si on la ressort.
+ */
+export async function archiverMission(
+  client: PrismaClient,
+  id: string,
+  archivee: boolean,
+): Promise<void> {
+  const existante = await client.mission.findUnique({
+    where: { id },
+    select: { id: true, reference: true, archiveeLe: true },
+  })
+  if (!existante) throw new MissionIntrouvable(id)
+
+  // Réarchiver une mission déjà rangée ne doit pas déplacer sa date d'archivage :
+  // c'est elle qui ordonne l'archive.
+  if (archivee === (existante.archiveeLe !== null)) return
+
+  await client.mission.update({
+    where: { id },
+    data: { archiveeLe: archivee ? new Date() : null },
+  })
+  await journaliser(client, {
+    entite: 'Mission',
+    entiteId: id,
+    action: 'MODIFICATION',
+    apres: { archivee, reference: existante.reference },
   })
 }
 
@@ -302,6 +343,15 @@ export async function supprimerMission(client: PrismaClient, id: string): Promis
   })
   if (!existante) throw new MissionIntrouvable(id)
 
+  // Les pièces déposées vivent sur le disque ; la cascade n'emporte que leurs
+  // lignes en base. Sans ce relevé, les plans d'une mission supprimée resteraient
+  // indéfiniment dans le dossier de données, invisibles et impossibles à
+  // retrouver — et les sauvegardes les traîneraient de mois en mois.
+  const pieces = await client.pieceJointe.findMany({
+    where: { missionId: id },
+    select: { cheminStockage: true },
+  })
+
   // Un rappel de repère est retenu par un `Restrict` : il empêche de supprimer
   // un repère dont une feuille de métré dépend encore. Cette garde protège le
   // repère pris isolément ; elle n'a pas de sens quand c'est la mission entière
@@ -312,6 +362,12 @@ export async function supprimerMission(client: PrismaClient, id: string): Promis
     await tx.ligneMetre.deleteMany({ where: { rappelRepere: { missionId: id } } })
     await tx.mission.delete({ where: { id } })
   })
+
+  // Les fichiers partent après la base, jamais avant : un disque nettoyé pour
+  // une suppression qui aurait échoué laisserait des pièces manquantes sous des
+  // lignes bien vivantes, ce qui est pire qu'un fichier orphelin.
+  for (const piece of pieces) await supprimerFichier(piece.cheminStockage)
+
   await journaliser(client, {
     entite: 'Mission',
     entiteId: id,
